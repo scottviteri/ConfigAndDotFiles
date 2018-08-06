@@ -88,9 +88,6 @@ alias HDMI='xrandr --output HDMI-1 --auto --left-of eDP-1'
 alias VGA='xrandr --output VGA-1 --auto --right-of eDP-1'
 alias off='xrandr --output HDMI-1 --off && xrandr --output VGA-1 --off'
 
-source /opt/ros/kinetic/setup.zsh
-source /home/scottviteri/LocalSoftware/catkin_ws/devel/setup.zsh
-
 bindkey -v
 export DROPBOX="$HOME/Dropbox"
 export MIT="$DROPBOX/MyBrain/BodySelf/FormalEducation/MIT"
@@ -103,8 +100,9 @@ export SLEEP="$DROPBOX/MyBrain/BodySelf/Health/Sleep"
 export QUESTIONS="$DROPBOX/MyBrain/BrainSelf/Questions"
 export HABITS="$DROPBOX/MyBrain/BodySelf/Habits"
 export APPLICATIONS="$DROPBOX/MyBrain/BodySelf/Career/Applications"
+export EMPLOYMENT="$DROPBOX/MyBrain/BodySelf/Career/Employment"
 export TODO="$DROPBOX/MyBrain/BrainSelf/ToDo"
 export PROG="$DROPBOX/MyBrain/BodySelf/Programming"
-export NIMBLE="$APPLICATIONS/GapYearApplications/RoboticsApplications/Nimble"
-export NECSI="/home/scottviteri/Dropbox/MyBrain/BodySelf/Career/Employment/NECSI"
-export MAIL="/var/mail/scottviteri"
+export NECSI="$EMPLOYMENT/NECSI"
+export CMU="$EMPLOYMENT/CMU-DeDeo"
+export PROJECTS="$DROPBOX/MyBrain/BrainSelf/Projects"
