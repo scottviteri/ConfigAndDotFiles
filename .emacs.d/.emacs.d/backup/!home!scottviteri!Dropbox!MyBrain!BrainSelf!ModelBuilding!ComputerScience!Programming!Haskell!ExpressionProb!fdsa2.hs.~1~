@@ -1,0 +1,9 @@
+
+
+
+module main where
+
+main = putStrLn ""
+
+twice :: Integer -> Integer
+twice n = 2 * n

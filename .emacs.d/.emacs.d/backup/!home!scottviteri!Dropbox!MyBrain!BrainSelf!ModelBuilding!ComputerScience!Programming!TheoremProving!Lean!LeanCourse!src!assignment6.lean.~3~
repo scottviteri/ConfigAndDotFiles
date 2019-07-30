@@ -1,0 +1,247 @@
+import data.list.perm
+-- import tactic.squeeze
+
+-- Notice that we are importing something from mathlib.
+
+variables {α : Type*} {β : Type*} {γ : Type*}
+
+/-
+This exercise has you unpacking the definition of a surjective function and
+using it.
+-/
+
+open function
+
+
+#print surjective
+
+/-
+Notice that given `f : α → β`, `hf : surjective f`, and `b : β`,
+we have `hf b : ∃ x : α, y = f x`.
+
+You can then use cases, the equation compiler, pattern matching, etc.
+to unpack the existential quantifier.
+-/
+
+example {f : α → β} (hf : surjective f) (y : β) : ∃ x : α, y = f x :=
+let ⟨x, hx⟩ := hf y in
+⟨x, hx.symm⟩
+
+/-
+In the next exercise, it may be helpful to use `rw [comp]` to unfold a function composition `f ∘ g`, and the `dsimp` tactic to reduce a lambda.
+Because they yield terms that are definitionally equivalent, they are
+not needed in the next example, but you can see what they do.
+-/
+
+example (g : β → γ) (f : α → β) (a : α) (c : γ) (h : g (f a) = c) :
+  (g ∘ f)(a) = c :=
+begin
+  rw [comp],
+  dsimp,
+  assumption
+end
+
+/-
+Prove the following.
+-/
+#print surjective
+
+lemma surjective_comp {g : β → γ} {f : α → β}
+    (hg : surjective g) (hf : surjective f) :
+  surjective (g ∘ f) :=
+begin
+  rw [comp],
+  rw surjective,
+  intros c,
+  cases (hg c) with b hb,
+  cases (hf b) with a ha,
+  refine ⟨a, _⟩,
+  rw [ha, hb]
+end
+
+#check @exists.elim
+#check @congr_arg
+
+lemma surjective_comp' {g : β → γ} {f : α → β}
+    (hg : surjective g) (hf : surjective f) :
+  surjective (g ∘ f) :=
+λ (c : γ),
+  (exists.elim (hg c)
+    (λ b hbc,
+      (exists.elim (hf b)
+      (λ a hab,
+        ⟨a, (show g (f a) = c, from (eq.trans (congr_arg g hab) hbc))⟩))))
+
+/-
+This is the insertion sort we wrote in class.
+-/
+
+namespace insertion_sort
+
+def insert1 (a : nat) : list nat → list nat
+| [] := [a]
+| (b :: l) := if a ≤ b then a :: b :: l else b :: (insert1 l)
+
+def sort : list nat → list nat
+| [] := []
+| (a :: l) := insert1 a (sort l)
+
+/-
+The next exercise asks you to prove that the sorted list is a permutation of
+the original list. You can browse the permutation library, but the following
+`#check`s and example show you what you need.
+-/
+
+open list
+
+#check perm.skip
+#check perm.trans
+#check perm.swap
+#check perm.refl
+#check perm.symm
+
+example : [1, 2, 3] ~ [3, 2, 1] :=
+calc
+  [1, 2, 3] ~ [2, 1, 3] : by apply perm.swap
+        ... ~ [2, 3, 1] : by { apply perm.skip, apply perm.swap }
+        ... ~ [3, 2, 1] : by apply perm.swap
+
+/-
+Use these to prove the sorting assignment correct.
+-/
+
+
+theorem perm_insert1 (a : nat) : ∀ l, insert1 a l ~ a :: l
+| []       := by refl
+| (b :: l) :=
+begin
+  unfold insert1,
+  by_cases (h : a ≤ b),
+
+
+end
+
+theorem perm_sort : ∀ l, sort l ~ l
+| []       := sorry
+| (a :: l) := sorry
+
+end insertion_sort
+
+/-
+On the previous assignment, you were asked to define the following
+inductive type and evaluation function.
+-/
+
+inductive nat_term
+| const : ℕ → nat_term
+| var   : ℕ → nat_term
+| plus  : nat_term → nat_term → nat_term
+| times : nat_term → nat_term → nat_term
+
+namespace nat_term
+
+def eval (val : ℕ → ℕ) : nat_term → ℕ
+| (const n)   := n
+| (var n)     := val n
+| (plus s t)  := eval s + eval t
+| (times s t) := eval s * eval t
+
+/-
+Implement "constant fusion," a procedure that simplifies subterms like
+5 + 7 to 12. Using the auxiliary function simp_const, define a function
+"fuse", as follows. To simplify a plus or a times, we first simplify the
+arguments recursively, and then apply simp_const to try to simplify the
+result.
+
+Notice that the equation compiler does a lot of work for us: it matches
+the relevant cases, and leaves everything else alone. On the other hand,
+to prove that it preserves values, we have to split on all the cases.
+-/
+
+def simp_const : nat_term → nat_term
+| (plus (const n₁) (const n₂))  := const (n₁ + n₂)
+| (times (const n₁) (const n₂)) := const (n₁ * n₂)
+| e                             := e
+
+theorem eval_simp_const (v : ℕ → ℕ) (e : nat_term) :
+  eval v (simp_const e) = eval v e :=
+by cases e with n n s t s t; simp [eval, simp_const]; cases s; cases t;
+    simp [eval, simp_const]
+
+def fuse : nat_term → nat_term := sorry
+
+theorem fuse_eq (v : ℕ → ℕ) : ∀ e : nat_term, eval v (fuse e) = eval v e :=
+sorry
+
+end nat_term
+
+/-
+The last two exercises are open-ended, and are entirely optional!
+-/
+
+/-
+This is the more efficient way to define list reversal.
+-/
+
+namespace list
+
+def rev_aux : list α → list α → list α
+| []     t := t
+| (a::s) t := rev_aux s (a::t)
+
+def rev (l : list α) : list α := rev_aux l nil
+
+/-
+Prove the following. (Actually, `list.reverse` is implemented this way
+in Lean's library, so you can look there for guidance.)
+-/
+
+theorem rev_rev : ∀ l : list α, rev (rev l) = l :=
+sorry
+
+end list
+
+/-
+Here is a sort procedure using binary search trees.
+-/
+
+def nondecreasing : list nat → bool
+| []            := tt
+| [a]           := tt
+| (a :: b :: l) := (a ≤ b) && nondecreasing (b :: l)
+
+inductive bst
+| nil : bst
+| node : ℕ → bst → bst → bst
+
+namespace bst
+
+def to_list_aux : bst → list nat → list nat
+| bst.nil            l := l
+| (bst.node n b₁ b₂) l := to_list_aux b₁ (n :: to_list_aux b₂ l)
+
+def to_list (b : bst) := to_list_aux b []
+
+def insert (n : nat) : bst → bst
+| nil := node n nil nil
+| (node m b₁ b₂) :=
+  if n ≤ m then node m (insert b₁) b₂ else node m b₁ (insert b₂)
+
+def from_list : list nat → bst
+| [] := nil
+| (a :: l) := insert a (from_list l)
+
+def sort (l : list ℕ) := to_list (from_list l)
+
+#eval to_list (node 5 (node 3 nil nil) (node 7 nil nil))
+
+#eval sort [5,2,8,2,4,5,7,2,1,1]
+
+/-
+Prove the the result is sorted!
+-/
+
+theorem nondecreasing_sort : ∀ l : list ℕ, nondecreasing (sort l) :=
+sorry
+
+end bst

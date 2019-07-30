@@ -1,0 +1,5 @@
+
+module Main where
+
+data Expr = Constant Double
+            | BinaryPlus Expr Expr

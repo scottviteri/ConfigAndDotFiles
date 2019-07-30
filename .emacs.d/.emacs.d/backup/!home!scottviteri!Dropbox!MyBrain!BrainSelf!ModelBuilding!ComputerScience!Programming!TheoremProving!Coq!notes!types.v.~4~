@@ -1,0 +1,89 @@
+(* My way of thinking about the Curry-Howard Corresp:
+   What is a proof? It is a particular type of program
+   that turns proof of the hypotheses into proof of the conclusion *)
+
+(* Then the type of such a program is a fxn type from
+   the type of each of the hypotheses (potentially curried)
+   to the type of the conclusion *)
+
+(* Additionally, we say that an inhabitant of something of type Prop
+   is evidence of that proposition. An element of a type can be thought
+   of as a single morphism from the singleton type to that type. The singleton
+   type is True, and the point (evidence) for true is called I. So
+   you can think of having an element of a type as meaning that you have
+   a program that takes trivially true evidence I and produces evidence
+   of the type in question. But this hinges on being able to say in the
+   first place that I is evidence of the proposition True. This probably
+   needs to be inserted as an axiom *)
+
+(* So what am I trying to get to? I can say that I is of type True by
+   def of True. I cannot get deeper than that. Saying that
+   I : True => (I is a proof of the proposition type True) is a matter
+   of interpretation (Martin-Lof interp I think). This interp is what
+   CIC and Gallina are structured off of. *)
+
+(* So our starting point is an interpretation that an element of a type
+   of type prop is a program that trivially generates evidence of the
+   theorem that that type represents. *)
+
+(* What does it mean for a type to represent a theorem? That with respect
+   to the other types, it acts as if it were that theorem. There will
+   always be grounding issues unless you just consider the relationships.
+   Just how a logic is an embedding of mathematics (ie how can symbols
+   represent a theorem), the types in this programming language are
+   an embedding of mathematics. *)
+
+Check (fun x : nat => x). (* type nat -> nat *)
+Check (fun x : True => x). (* type True -> True *)
+(* in the same way the first example is a program that takes a nat and returns one,
+   the second example is a program that takes evidence of T and returns evidence of T *)
+
+Check I. (* the inhabitant of True, there I : True *)
+
+Check (fun _ : False => I). (* type False -> True *)
+Check (fun x : False => x). (* type False -> False *)
+(* any Galline term of logical type we call a proof term *)
+
+Inductive unit : Set :=
+  | tt : unit.
+
+Check unit. (* Set *)
+Check tt. (* unit *)
+
+Theorem unit_singleton : forall x : unit, x = tt.
+Proof. intros x. destruct x. reflexivity. Qed.
+
+(* The nice thing about inductive types is that the proofs about
+   then can be done using induction. But for this particular case
+   we only needed case-analysis. *)
+
+Check nat_ind. (* forall P : nat -> P, P 0 -> (forall n : nat, P n -> P (S n))
+                  -> forall n : nat, P n *)
+
+(* Induction principle for unit?
+   unit_ind : forall P : unit -> P, P tt -> (forall x : unit, P tt)
+               (-> forall x : unit, P tt ) <- not with this part!
+   Because only 1 constructor
+ *)
+Check unit_ind.
+
+Inductive True : Prop :=
+  | I : True.
+Check True_ind. (* not forall P : True -> P, P I -> (forall t : True, P t) *)
+(* actually is forall P : Prop, P -> True -> P *)
+(* Unsure why prop version has different inductive structure *)
+
+(* In any event unit is isomorphic to True *)
+
+Inductive Empty_set : Set := .
+Check Empty_set_ind. (* forall (P : Empty_set -> P) (e : Empty_set), P e *)
+(* Same structure as False *)
+Inductive False : Prop := .
+Check False_ind. (* forall (P : Prop), False -> P *)
+
+Theorem the_sky_is_falling : forall x : Empty_set, 2 + 2 = 3.
+Proof. destruct 1. Qed.
+Print the_sky_is_falling.
+
+Theorem the_sky_is_falling' : forall x : Empty_set, 2 + 2 = 3.
+Proof. match x return (2 + 2 = 3) with end. Qed.

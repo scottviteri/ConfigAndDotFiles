@@ -1,0 +1,49 @@
+(define-module (list-ops)
+  #:export (my-length
+            my-reverse
+            my-map
+            my-filter
+            my-fold
+            my-append
+            my-concatenate
+            ))
+
+(use-modules (srfi srfi-1))
+
+(define (my-max x . rest)
+  (if (nil? rest) x
+      (if (> x (car rest))
+          (apply my-max (cons x rest))
+          (apply my-max rest))))
+
+
+(define (my-fold op init lst)
+  (define (loop acc l1)
+    (if (nil? l1)
+        acc
+        (loop (cdr l1)
+              (cons (op acc (car l1))
+                    (cdr l1)))))
+  (loop init lst)
+  )
+
+(define (compose f g)
+  (lambda (x) (f (g x))))
+
+(define (twice x) (* 2 x))
+(define (const x y) x)
+(define (inc x) (+ x 1))
+
+(define (my-length lst)
+  (define (loop l1 acc)
+    (if (nil? l1) 0 (loop (cdr l1) (+ acc 1))))
+  (loop lst 0)
+)
+
+(define (my-reverse lst)
+  (define (loop l1 l2)
+    (if (nil? l1)
+        l2
+        (loop (cdr l1) (cons (car l1) l2))))
+  (loop lst '())
+)

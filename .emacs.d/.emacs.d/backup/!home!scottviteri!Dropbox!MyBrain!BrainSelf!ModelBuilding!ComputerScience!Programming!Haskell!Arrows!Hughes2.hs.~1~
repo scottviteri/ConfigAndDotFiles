@@ -1,0 +1,65 @@
+
+module Main where
+
+import Control.Monad
+
+main :: IO()
+main = putStrLn ""
+
+
+-- count num occurences of word w in a string
+count :: String -> String -> Int
+count w = length . filter (==w) . words
+
+-- the above is using the point free programming style
+-- point-free: can make for concise and readable defs, which are well suited to equational reasoning
+-- also a natural way to assemble programs from components, like with connected progs via UNIX pipes
+
+-- modify count to it counts the num of occurrences of a word in a file and print
+-- count' :: String -> FilePath -> IO ()
+-- count' w = print . length . filter (==w) . words . readFile
+-- the above does not type check because readFile produces a String wrapped in the IO monad
+
+-- can write a point-free definition of this function using combinators from the standard Monad library
+-- wrap the intermediate parts in monad via liftM (or fmap in this case)
+count' :: String -> FilePath -> IO ()
+count' w = (>>=print) . fmap (length . filter (==w) . words) . readFile
+
+-- functions with side-effects have types of the form a -> IO b
+-- Generalize this to Kleisli arrows
+-- type Kleisli m a b = a -> m b
+
+-- now readFile :: Kleisli IO String String
+-- print :: Show a => Kleisli IO a ()
+
+-- define reverse composition operator, that compose two functions with side effects
+type Kleisli m a b = a -> m b
+(>>>) :: Monad m => Kleisli m a b -> Kleisli m b c -> Kleisli m a c
+(f >>> g) a = do b <- f a
+                 g b
+
+-- we can use this composition operator to define functions with side-effects in a point-free style
+-- print the contents of a file
+printFile :: FilePath -> IO ()
+printFile = readFile >>> print
+
+-- we cannot yet reprogram our orig example in terms of >>>, bceause need to lift output of the String -> Int section
+-- define a combinator to do so
+-- return :: Monad m => a -> m a
+arr :: Monad m => (a -> b) -> Kleisli m a b
+arr f = return . f
+
+count'' :: String -> FilePath -> IO ()
+-- count'' w = readFile >>> arr (length . filter (==w) . words) >>> print
+count'' w = readFile >>> arr words >>> arr (filter (==w)) >>> arr length >>> print
+
+
+-- continue in Hughes2.hs
+-- Now have two ways to write point-free definitions: using functions and composition or Kleisli arrows and arrow composition
+-- can unify them by overloading the arrow operators, so that the same operations can be used with both
+
+-- So we introduce an Arrow class with arr and (>>>) as methods
+
+class Arrow arr where
+  arr :: (a -> m b) -> arr a b
+  (>>>) :: arr a b -> arr b c -> arr a c

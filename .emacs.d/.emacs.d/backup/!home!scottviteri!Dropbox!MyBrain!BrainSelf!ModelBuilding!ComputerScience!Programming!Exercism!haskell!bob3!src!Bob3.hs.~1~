@@ -1,0 +1,25 @@
+module Bob3 (responseFor) where
+
+import qualified Data.Char (isAlpha, isUpper, isSpace)
+
+responseFor :: String -> String
+responseFor [] = "Fine. Be that way!"
+responseFor xs
+    | checkEmpty text    = "Fine. Be that way!"
+    | (checkShouting text) && (checkQuestion text) = "Calm down, I know what I'm doing!"
+    | checkShouting text = "Whoa, chill out!"
+    | checkQuestion text = "Sure."
+    | otherwise        = "Whatever."
+    where text = (filter (not . Data.Char.isSpace) xs)
+
+checkEmpty :: String -> Bool
+checkEmpty s = (length(s) == 0)
+
+checkShouting :: String -> Bool
+checkShouting xs = case (filter Data.Char.isAlpha xs) of
+                       [] -> False
+                       alphas -> all Data.Char.isUpper alphas
+
+checkQuestion :: String -> Bool
+checkQuestion [] = False
+checkQuestion xs = ((last xs) == '?')

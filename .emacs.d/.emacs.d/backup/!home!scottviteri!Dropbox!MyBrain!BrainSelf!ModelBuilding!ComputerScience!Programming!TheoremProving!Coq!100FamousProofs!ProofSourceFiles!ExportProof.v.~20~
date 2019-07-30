@@ -1,0 +1,24 @@
+Add LoadPath "~/LocalSoftware/CoqASTSource/plugin/src/".
+Require Import PrintAST.ASTPlugin.
+
+(* Require Import Arith.
+PrintAST well_founded_lt_compat with depth 2. *)
+
+Definition dec (n : nat) : nat :=
+  match n with
+    | 0 => 0
+    | S n' => n'
+  end.
+
+Definition dec_inc (n : nat) : nat := dec (S n).
+
+Theorem dec_inc_prop : forall n : nat, (dec_inc n) = n.
+Proof. reflexivity. Qed.
+
+Theorem eq_nat : forall n : nat, n = n.
+Proof. induction n; reflexivity. Qed.
+
+PrintAST eq_nat.
+
+Theorem proj1 : forall (p q : Prop), p -> q -> p.
+Proof.

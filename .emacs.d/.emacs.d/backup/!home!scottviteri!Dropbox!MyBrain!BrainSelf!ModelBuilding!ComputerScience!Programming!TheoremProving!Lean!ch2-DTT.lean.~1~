@@ -1,0 +1,128 @@
+#check 4
+#check Type
+#check λ x:ℕ, x + 4
+
+def h := λ x : int, x + 5
+def h'  (x : int) := x + 5
+def h'' (x : int) : int := x + 5
+
+#check h
+#check h'
+#check h''
+
+#print "hello world"
+#reduce (m,n).1 --m
+#reduce tt && ff
+
+-- def curry (α β γ : Type) (f : α × β
+def compose (α β γ : Type) (g : β → γ) (f : α → β) (x : α) :=
+  g (f x)
+
+def double : ℕ → ℕ := λ x, x + x
+#reduce double 2
+
+def double' (x : ℕ) : ℕ := x  + x
+#reduce double' 2
+
+def square : ℕ → ℕ := λ x, x * x
+#reduce square 3
+
+def square' (x : ℕ) : ℕ := x * x
+#reduce square' 3
+
+def do_twice : (ℕ → ℕ) → ℕ → ℕ := λ f x, f (f x)
+#reduce do_twice square 3
+
+def quadruple : ℕ → ℕ := do_twice double
+#reduce quadruple 3
+
+def octuple : ℕ → ℕ := λ x, double (do_twice double x)
+#reduce octuple 2
+
+def Do_Twice : ((ℕ → ℕ) → ℕ → ℕ) → (ℕ → ℕ) → ℕ → ℕ := λ f g, f (f g)
+
+def times_sixteen : ℕ → ℕ := do_twice (do_twice double)
+#reduce times_sixteen 2
+#reduce Do_Twice do_twice double 2
+
+
+def curry (α β γ : Type) (f : α × β → γ) : α → β → γ := λ a b, f (a, b)
+def uncurried_f : bool × ℕ → ℤ := λ p : bool × ℕ, if p.fst then 2 else 3
+#check curry bool ℕ ℤ uncurried_f
+universe u
+
+def curry' : Π {α β γ : Type u}, (α × β → γ) → α → β → γ :=
+  λ α β γ f a b, f (a, b)
+
+#check curry' uncurried_f
+
+
+def uncurry : Π {α β γ : Type u}, (α → β → γ) → α × β → γ :=
+  λ α β γ f p, (f p.fst p.snd)
+
+def curried_f : bool → ℕ → ℤ := λ (b : bool) (n : ℕ), (-1 : ℤ)
+#check uncurry curried_f
+
+
+
+
+namespace hidden_list
+
+constant list : Type u → Type u
+constant cons : Π (α : Type u), α → list α → list α
+constant nil : Π (α : Type u), list α
+constant head : Π (α : Type u), list α → α
+constant tail : Π (α : Type u), list α → list α
+constant append : Π (α : Type u), list α → list α → list α
+
+#check cons ℕ 4 (nil ℕ)
+#check head ℕ (cons ℕ 4 (nil ℕ))
+
+end hidden_list
+
+
+namespace hidden_list'
+
+constant list : Type u → Type u
+constant cons : Π {α : Type u}, α → list α → list α
+constant nil : Π {α : Type u}, list α
+constant head : Π {α : Type u}, list α → α
+constant tail : Π {α : Type u}, list α → list α
+constant append : Π {α : Type u}, list α → list α → list α
+
+#check cons 4 (nil)
+#check head (cons 4 nil)
+
+#check cons
+#check @cons
+
+end hidden_list'
+
+
+
+open list
+
+#check list -- Type u_1 → Type u_2
+#check @cons -- Π {T : Type u_1}, T → list T → list T
+#check @head -- Π {α : Type u_1}, [_inst1_ : inhabited α] list α → α
+
+
+constant vec : Type u → ℕ → Type u
+constant vec_empty : Π {α : Type u}, vec α 0
+constant zero_vec : Π {α : Type u} (n : ℕ), vec α n
+constant vec_cons : Π {α : Type u} (n : ℕ), α → vec α n → vec α (n+1)
+constant vec_append : Π {α : Type u} (n m : ℕ), vec α n → vec α m → vec α (n + m)
+constant vec_add : Π {α : Type u} (n : ℕ), vec α n → vec α n → vec α n
+
+constant matrix : Type u → ℕ → ℕ → Type u
+constant zero_mat : Π {α : Type u} (m n : ℕ), matrix α m n
+constant mat_add : Π {α : Type u} (m n : ℕ), matrix α m n → matrix α m n → matrix α m n
+constant mat_mult : Π {α : Type u} (m n o : ℕ), matrix α m n → matrix α n o → matrix α m o
+constant mat_mult_vec : Π {α : Type u} (m n : ℕ), matrix α m n → vec α n → vec α m
+
+#check matrix ℕ 2 3
+#check mat_mult 2 3 4 (zero_mat 2 3) (zero_mat 3 4)
+#check mat_mult_vec 2 3 (zero_mat 2 3) (zero_vec 3)
+
+#check let y := 2 + 2 in y * y
+#reduce let y := 2 + 2 in y * y

@@ -1,0 +1,16 @@
+Add LoadPath "~/LocalSoftware/CoqASTSource/plugin/src/".
+Add LoadPath "./ProofSourceFiles".
+Require Import PrintAST.ASTPlugin.
+
+(* Require Import Arith.
+PrintAST well_founded_lt_compat with depth 2. *)
+
+Definition dec (n : nat) : nat :=
+  match n with
+    | 0 => 0
+    | S n' => n'
+  end.
+
+Theorem dec_inc : forall n : nat, dec (S n) = n.
+Proof. reflexivity. Qed.
+PrintAST

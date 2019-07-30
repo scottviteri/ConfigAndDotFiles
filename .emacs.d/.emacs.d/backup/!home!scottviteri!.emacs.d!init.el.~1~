@@ -1,0 +1,149 @@
+;;import elpa
+(require 'package)
+;add melpa as a resource
+(add-to-list 'package-archives '("melpa" . "http://melpa.org/packages/"))
+(package-initialize)
+
+(setq package-enable-at-startup nil)
+
+(unless (package-installed-p 'use-package)
+  (package-refresh-contents)
+  (package-install 'use-package))
+
+(setq inhibit-startup-message t)
+;(setq inhibit-startup-echo-are-message t)
+
+(menu-bar-mode -1)
+(tool-bar-mode -1)
+(scroll-bar-mode -1)
+(tooltip-mode -1)
+
+(setq-default indent-tabs-mode nil)
+(setq-default tab-width 4)
+
+(add-to-list 'load-path "~/.emacs.d/evil")
+(require 'evil)
+(evil-mode 1)
+
+;; run code for proof general, including adding hooks for .v files
+;; add proof general into load-path
+(load "~/.emacs.d/PG/generic/proof-site")
+
+
+;; company coq dependencies
+
+(require 'cl-lib)
+(require 'yasnippet)
+(require 'dash)
+(require 'company)
+(require 'company-math)
+
+;; Load company-coq when opening Coq files
+(add-to-list 'load-path "~/.emacs.d/company-coq")
+(require 'company-coq)
+
+(add-hook 'coq-mode-hook 'company-coq-mode)
+(setq proof-spash-seen t)
+
+(require 'python-mode)
+
+;;(require 'pretty-mode)
+;;(global-pretty-mode 0)
+;;
+;;(pretty-deactivate-groups
+;; '(:equality :ordering :ordering-double :ordering-triple
+;;             :arrows :arrows-twoheaded :punctuation
+;;             :logic :sets))
+;;
+;;(pretty-activate-groups
+;; '(:sub-and-superscripts :greek :arithmetic-nary))
+;;
+;;(add-hook 'python-mode-hook 'turn-on-pretty-mode)
+
+(setq prettify-symbols-unprettify-at-point 'right-edge)
+(global-prettify-symbols-mode 0)
+
+(add-hook
+   'python-mode-hook
+   (lambda ()
+     (mapc (lambda (pair) (push pair prettify-symbols-alist))
+           '(("def" . "𝒇")
+             ("class" . "𝑪")
+             ("and" . "∧")
+             ("or" . "∨")
+             ("not" . "￢")
+             ("in" . "∈")
+             ("not in" . "∉")
+             ("return" . "⟼")
+             ("yield" . "⟻")
+             ("for" . "∀")
+             ("!=" . "≠")
+             ("==" . "＝")
+             (">=" . "≥")
+             ("<=" . "≤")
+             ("=" . "≝")
+             ;; Base Types
+             ("int" .      #x2124)
+             ("float" .    #x211d)
+             ("str" .      #x1d54a)
+             ("True" .     #x1d54b)
+             ("False" .    #x1d53d)))))
+
+
+(setq backup-directory-alist '(("." . "~/.emacs.d/backup"))
+    backup-by-copying t    ; Don't delink hardlinks
+    version-control t      ; Use version numbers on backups
+    delete-old-versions t  ; Automatically delete excess backups
+    kept-new-versions 20   ; how many of the newest versions to keep
+    kept-old-versions 5    ; and how many of the old
+    )
+
+
+
+(use-package crux
+    :ensure t
+    :bind (("C-a" . crux-move-beginning-of-line)))
+(add-hook 'before-save-hook 'delete-trailing-whitespace)
+
+
+(use-package ivy
+      :ensure t
+      :diminish ivy-mode
+      :config
+      (ivy-mode t))
+
+(setq ivy-initial-inputs-alist nil)
+
+(use-package feebleline
+    :ensure t)
+
+(use-package markdown-mode
+    :ensure t
+    :commands (markdown-mode gfm-mode)
+    :mode (("README\\.md\\'" . gfm-mode)
+           ("\\.md\\'" . markdown-mode)
+           ("\\.markdown\\'" . markdown-mode))
+    :init (setq markdown-command "multimarkdown"))
+
+(custom-set-variables
+ ;; custom-set-variables was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ '(ansi-color-names-vector
+   ["#000000" "#8b0000" "#00ff00" "#ffa500" "#7b68ee" "#dc8cc3" "#93e0e3" "#dcdccc"])
+ '(custom-enabled-themes (quote (manoj-dark)))
+ '(custom-safe-themes
+   (quote
+    ("d1cc05d755d5a21a31bced25bed40f85d8677e69c73ca365628ce8024827c9e3" default)))
+ '(fci-rule-color "#383838"))
+
+(custom-set-faces
+ ;; custom-set-faces was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ )
+
+
+

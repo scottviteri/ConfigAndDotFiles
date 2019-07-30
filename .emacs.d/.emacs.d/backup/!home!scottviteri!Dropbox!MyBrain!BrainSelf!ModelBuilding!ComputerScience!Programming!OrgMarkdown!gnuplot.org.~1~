@@ -1,0 +1,13 @@
+#+tblname: data-table
+| x | y1 | y2 |
+|---+----+----|
+| 0 | 3  | 6  |
+| 1 | 4  | 7  |
+| 2 | 5  | 8  |
+
+#+BEGIN_SRC gnuplot :var data=data-table :file output.png
+f(x) = sin(x)
+plot f(x) with lines
+#+END_SRC
+
+#+RESULTS:

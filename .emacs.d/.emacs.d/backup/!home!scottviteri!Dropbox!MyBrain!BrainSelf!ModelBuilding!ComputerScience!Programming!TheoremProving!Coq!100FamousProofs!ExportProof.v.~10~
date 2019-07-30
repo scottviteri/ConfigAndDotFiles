@@ -1,0 +1,7 @@
+Add LoadPath "~/LocalSoftware/CoqASTSource/plugin/src/".
+Require Import PrintAST.ASTPlugin.
+Require Import Reals.
+
+(* Print sqrt2_not_rational. *)
+PrintAST binomial.
+PrintAST binomial with depth 3.

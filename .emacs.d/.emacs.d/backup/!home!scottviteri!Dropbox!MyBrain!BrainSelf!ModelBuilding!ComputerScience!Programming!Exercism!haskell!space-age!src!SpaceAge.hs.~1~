@@ -1,0 +1,26 @@
+module SpaceAge (Planet(..), ageOn) where
+
+data Planet = Mercury
+            | Venus
+            | Earth
+            | Mars
+            | Jupiter
+            | Saturn
+            | Uranus
+            | Neptune
+
+getSecondsOnPlanetPerYear :: Planet -> Float
+getSecondsOnPlanetPerYear planet = 
+ case planet of Mercury -> 0.2408467  * secondsInEarthYear
+                Venus   -> 0.61519726 * secondsInEarthYear
+                Earth   -> 1.00       * secondsInEarthYear
+                Mars    -> 1.8808158  * secondsInEarthYear
+                Jupiter -> 11.862615  * secondsInEarthYear
+                Saturn  -> 29.447498  * secondsInEarthYear
+                Uranus  -> 84.016846  * secondsInEarthYear
+                Neptune -> 164.79132  * secondsInEarthYear
+  where secondsInEarthYear = 31557600
+
+
+ageOn :: Planet -> Float -> Float
+ageOn planet seconds = seconds / (getSecondsOnPlanetPerYear planet)

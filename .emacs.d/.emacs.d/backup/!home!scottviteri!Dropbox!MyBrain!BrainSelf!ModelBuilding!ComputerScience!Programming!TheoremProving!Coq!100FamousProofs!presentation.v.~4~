@@ -1,0 +1,88 @@
+
+
+Inductive nat : Set :=
+| z : nat
+| S : nat -> nat.
+
+Inductive ev : nat -> Prop :=
+| ev_0 : ev z
+| ev_SS : forall n : nat, ev n -> ev (S (S n)).
+
+Theorem ev_2 : ev (S (S z)).
+Proof. apply (ev_SS z ev_0). Qed.
+Print ev_2.
+
+Theorem ev_4 : ev (S (S (S (S z)))).
+Proof. apply (ev_SS (S (S z)) ev_2). Qed.
+Print ev_4.
+
+
+Add LoadPath "~/LocalSoftware/CoqASTSource/plugin/src/".
+Require Import PrintAST.ASTPlugin.
+
+PrintAST ev_2.
+PrintAST ev_4.
+
+(*
+(Definition Top.ev_2
+            (App (Construct (Name ev) 2)
+                 (Construct (Name nat) 1)
+                 (Construct (Name ev) 1)))
+*)
+
+
+(*
+
+PrintAST ev_4.
+
+(Definition Top.ev_4
+            (App (Construct (Name ev) 2)
+                 (App (Construct (Name nat) 2)
+                      (App (Construct (Name nat) 2) (Construct (Name nat) 1)))
+                 (Definition Top.ev_2
+                             (App (Construct (Name ev) 2)
+                                  (Construct (Name nat) 1)
+                                  (Construct (Name ev) 1)))))
+ *)
+
+(*
+Check 1.
+Check fun (x : nat) => x.
+Check fun (x : nat) (y : nat) => x.
+Check fun (x y : nat) => x.
+
+Section program_version.
+
+Variable A B C : Type.
+
+Definition apply : A -> (A -> B) -> B :=
+  fun (a : A) (f_ab : A -> B) => f_ab a.
+
+Definition compose : (B -> C) -> (A -> B) -> A -> C :=
+  fun (f_bc : B -> C) (f_ab : A -> B) (a : A) => f_bc (f_ab a).
+
+End program_version.
+
+Section proposition_version.
+
+  Variable A B C : Prop.
+
+  Definition modens_ponens : A -> (A -> B) -> B.
+    Proof. apply (fun (ha : A) (hab : A -> B) => hab ha). Qed.
+
+  Definition trans : (B -> C) -> (A -> B) -> A -> C.
+    Proof. apply (fun (hbc : B -> C) (hab : A -> B) (ha : A) => hbc (hab ha)). Qed.
+
+End proposition_version.
+
+
+Theorem forward_huge : (forall A B C : Prop, A -> (A->B) -> (A->B->C) -> C).
+Proof.
+  intros A B C.
+  intros proof_of_A A_implies_B A_imp_B_imp_C.
+  pose (proof_of_B := A_implies_B proof_of_A).
+  pose (proof_of_C := A_imp_B_imp_C proof_of_A proof_of_B).
+  exact proof_of_C.
+Qed.
+
+*)

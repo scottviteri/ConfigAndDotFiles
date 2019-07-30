@@ -1,0 +1,761 @@
+#+TITLE: Manipulate Proof Trees
+#+OPTIONS: tex:t
+#+STARTUP: latexpreview
+#+LATEX_HEADER: \usepackage{qtree,tiks}
+
+
+* Manip Proof Trees
+
+** Tree reading / manipulation utilities
+
+*** Read trees into python nested lists
+
+First, grab some sample proof trees.
+
+#+BEGIN_SRC python :session
+even_4_string = '(Definition Top.ev_2 (App ev_SS O ev_0)) (Definition Top.ev_4 (App ev_SS (App S (App S O)) Top.ev_2))'
+even_8_string = '(Definition Top.ev_2 (App ev_SS O ev_0)) (Definition Top.ev_4 (App ev_SS (App S (App S O)) Top.ev_2)) (Definition Top.ev_8 (App ev_SS (App S (App S (App S (App S (App S (App S O)))))) (App ev_SS (App S (App S (App S (App S O)))) Top.ev_4)))'
+#+END_SRC
+
+#+RESULTS:
+
+We will need to parse these into a form that python can more directly read.
+
+I am using a list of lists, where [A,B,[C,D]] represents
+ A
+ |\
+ B C
+   |
+   D
+
+#+BEGIN_SRC python :session :results output
+
+import math
+import copy
+import itertools
+import pickle
+import ast
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import json
+import functools
+
+def push(obj, l, depth):
+    while depth:
+        l = l[-1]
+        depth -= 1
+    l.append(obj)
+
+
+def stringToLists(s):
+    s = s[1:-1]
+    groups = []
+    depth = 0
+    try:
+        word = ''
+        for char in s:
+            if char == '(':
+                push([], groups, depth)
+                depth += 1
+            elif char == ')':
+                if word:
+                    push(word, groups, depth)
+                    word = ''
+                depth -= 1
+            elif char == ' ':
+                if word:
+                    push(word, groups, depth)
+                    word = ''
+            else:
+                word += char
+    except IndexError:
+        raise Exception('Parentheses mismatch')
+    if depth > 0:
+        raise Exception('Parentheses mismatch')
+    else:
+        return groups
+
+
+def focusToNewLetters(focus_string):
+    if focus_string[1] == '(': return '['
+    elif focus_string[1] == ')': return ']'
+    elif focus_string[1] == ' ': return ','
+    if focus_string[1].isalnum() \
+        and (focus_string[0] == '(' or focus_string[0] == ' ') \
+        and (focus_string[2] == ')' or focus_string[2] == ' '):
+        return '\"'+focus_string[1]+'\"'
+    if focus_string[1] not in '( )' and (focus_string[0] == '(' or focus_string[0] == ' '):
+        # (a -> ("a or ' a' -> ' "a'
+        return '\"'+focus_string[1]
+    if focus_string[1] not in '( )' and (focus_string[2] == ')' or focus_string[2] == ' '):
+        # b) -> b") or 'b ' -> 'b" '
+        return focus_string[1]+'\"'
+    return focus_string[1]
+
+
+def isFlat(l):
+    return not any(filter(lambda x: isinstance(x,list), l))
+
+def concat(lst_of_lsts):
+    return functools.reduce(lambda x,y:x+y, lst_of_lsts, [])
+
+def printTreeHelper(tree):
+    """ Prints tree by prepending '+---' to each layer
+    Example: printTreeHelper(['Definition', 'Top.ev_2', ['App', 'ev_SS', 'O', 'ev_0']])
+    # base: ['App', 'ev_SS', 'O', 'ev_0'] -> ['App', '+---ev_SS', '+---O', '+---ev_0']
+    # ind_step: ['Definition', 'Top.ev_2', ['App', '+---ev_SS', '+---O', '+---ev_0']]
+    #  -> ['Definition', '+---Top.ev_2', '+---App', '+---+---ev_SS', '+---+---O', '+---+---ev_0']]
+    """
+    h,t = tree[0], tree[1:]
+    if not isinstance(tree, list):
+        assert(isinstance(tree, str))
+        return [tree]
+    if isFlat(tree):
+        return [h] + list(map(lambda x: "+---"+x, t))
+    return [h] + concat([list(map(lambda x: "+---"+x, printTreeHelper(x))) for x in t])
+
+def printTree(tree, max_depth=None):
+    for x in printTreeHelper(tree):
+        if max_depth is not None:
+            if "+---"*max_depth not in x:
+                print(x)
+        else:
+            print(x)
+
+
+# let search_val be a flat list
+def replaceFlatList(lst_of_lsts, search_val, replace_val):
+    l = []
+    for x in lst_of_lsts:
+        if search_val == x:
+            l.append(replace_val)
+        else:
+            if isinstance(x,list):
+                if isFlat(x):
+                    l.append(x)
+                else:
+                    l.append(replaceFlatList(x, search_val, replace_val))
+            else:
+                l.append(x)
+    return l
+
+def subNats(lst_of_lsts):
+    l = replaceFlatList(lst_of_lsts, ['App','S','O'], '1')
+    last_l = None
+    n = 1
+    while last_l != l:
+       last_l = l
+       l = replaceFlatList(l, ['App','S',str(n)], str(n+1))
+       n += 1
+    return l
+
+
+def parenStringToLists(string, is_filename=False):
+    assert(string.count('(') == string.count(')'))
+    accum = ''
+    if is_filename:
+        with open(string, 'r') as f:
+            paren_string = f.read()[:-1]
+    else:
+        paren_string = string
+    paren_string = paren_string.strip()
+    rooted_paren_string = '(Top ' + paren_string + ')'
+    focus = "  " + rooted_paren_string[0]
+    for char in rooted_paren_string[1:]:
+        focus = focus[1:] + str(char)
+        accum += focusToNewLetters(focus)
+        #print(focus[1], focusToNewLetters(focus))
+    accum += ']'
+    #with open('fdsa.txt','w') as f:
+    #    f.write(accum)
+    return subNats(json.loads(accum))
+
+print(parenStringToLists('(a b (c d e))'))
+print()
+
+l1_from_file = parenStringToLists('../100FamousProofs/Proofs/ev_4/d2.txt', True)
+print(l1_from_file)
+
+l1 = parenStringToLists(even_4_string)
+assert(l1 == l1_from_file)
+#+END_SRC
+
+#+RESULTS:
+: ['Top', ['a', 'b', ['c', 'd', 'e']]]
+:
+: ['Top', ['Definition', 'Top.ev_2', ['App', 'ev_SS', 'O', 'ev_0']], ['Definition', 'Top.ev_4', ['App', 'ev_SS', '2', 'Top.ev_2']]]
+
+#+BEGIN_SRC python :session
+
+def recur(lst, out_file, count=0):
+    if count == 0:
+        out_file.write('None ' + str(lst[0]) + ' '+ str(count) +'\n')
+        #print(None, lst[0], count) # "(#{list[0]}) #{prev} -> #{count}\n"if isinstance(unit, list):
+    prev = count
+    for unit in lst[1:]:
+        count += 1
+        if isinstance(unit,list):
+            out_file.write(str(prev) + ' ' + str(unit[0]) + ' '+ str(count) +'\n')
+            #print(prev, unit[0], count) # "(#{list[0]}) #{prev} -> #{count}\n"if isinstance(unit, list):
+        else:
+            out_file.write(str(prev) + ' ' + str(unit) + ' '+ str(count) +'\n')
+            #print(prev, unit, count) # "(#{list[0]}) #{prev} -> #{count}\n"if isinstance(unit, list):
+        if isinstance(unit, list):
+            count = recur(unit, out_file, count)
+    return count
+
+
+with open('out.txt','w') as f:
+    recur(['A','B',['C','D','E']], f)
+
+with open('out.txt','r') as f:
+    out = f.read()
+    assert([len(l.split(' ')) == 3 for l in out.split('\n')[:-1]])
+    print(out)
+
+#+END_SRC
+
+#+RESULTS:
+: 4
+
+
+Want to convert from nested list format to [(parent, name, id)] format.
+It will be convenient to have ids strictly decrease as we go down a tree,
+  and one way we can do this is by labeling the nodes in BFS order.
+
+In order to do this, we'll first need to build up some helper functions to deal with nested lists.
+
+#+BEGIN_SRC python :session
+
+def evalTuple(tuple):
+    return (eval(tuple[0]),tuple[1],eval(tuple[2]))
+
+def loadTupleTreeFromFile(filename):
+    with open(filename, "r") as f:
+        tuple_strings = f.readlines()[::-1]
+    tuple_tree = set([evalTuple(tuple(s[:-1].split(" "))) for s in tuple_strings])
+    return tuple_tree
+
+
+def genTupleTree(string, is_filename=False):
+    lstOfLsts = parenStringToLists(string, is_filename)
+    with open('out.txt','w') as f:
+        c = recur(lstOfLsts, f)
+    return loadTupleTreeFromFile('out.txt')
+
+#assert(genTupleTree(even_4_string) == genTupleTree('../100FamousProofs/Proofs/ev_4.txt',True))
+
+even_4_tree = parenStringToLists('../100FamousProofs/Proofs/ev_4/d2.txt', True)
+even_8_tree = parenStringToLists('../100FamousProofs/Proofs/ev_8/d3.txt', True)
+sqrt2_tree = parenStringToLists('../100FamousProofs/Proofs/sqrt2/d3.txt', True)
+
+print(even_8_tree)
+#+END_SRC
+
+#+RESULTS:
+
+*** Substitute definitions back into the original tree branch
+
+#+BEGIN_SRC python :session
+
+def replaceVal(lst_of_lsts, search_val, replace_val):
+    """ similar to subRec, but search target is a single value """
+    l = []
+    for x in lst_of_lsts:
+        if instance(x,list):
+            l.append(replaceVal(x, search_val, replace_val))
+        else:
+            if search_val == x:
+                l.append(replace_val)
+            else:
+                l.append(x)
+    return l
+
+def replaceVals(lst_of_lsts, search_replace_dict):
+    """ similar to replaceVal, but multiple search targets with different replace_vals """
+    l = []
+    for x in lst_of_lsts:
+        if isinstance(x,list):
+            l.append(replaceVals(x, search_replace_dict))
+        else:
+            if x in search_replace_dict:
+                l.append(search_replace_dict[x])
+            else:
+                l.append(x)
+    return l
+
+def accumMatches(lst_of_lsts, test):
+    l = []
+    for x in lst_of_lsts:
+        if isinstance(x, list):
+            l.extend(accumMatches(x, test))
+        else:
+            if test(x):
+                l.append(x)
+    return l
+
+def inNestedList(elem, lst_of_lsts):
+    for x in lst_of_lsts:
+        if isinstance(x,list):
+            if inNestedList(elem, x):
+                return True
+        else:
+            if elem == x:
+                return True
+    return False
+
+# note that PrintAST can append same definition many times!
+
+def replaceDefinitions(lst_of_lsts, max_depth=math.inf):
+    orig_tree, dep_trees = lst_of_lsts[-1], lst_of_lsts[1:-1]
+    replace_string_candidates = set(map(lambda x:x[1], dep_trees))
+    replace_strings = list(filter(lambda x: inNestedList(x, orig_tree[2]), replace_string_candidates))
+    replace_string_candidates = replace_string_candidates - set(replace_strings)
+    #print(replace_strings)
+    def_to_subtree = {x[1]:x for x in lst_of_lsts}
+    depth = 0
+    l = []
+    search_replace_dict = {}
+    while replace_string_candidates and depth < max_depth:
+        search_replace_dict = {k:def_to_subtree[k] for k in def_to_subtree if k in replace_strings}
+        #print('orig', orig_tree)
+        orig_tree = replaceVals(orig_tree, search_replace_dict)
+        depth += 1
+        replace_strings = list(filter(lambda x: inNestedList(x, orig_tree[2]), replace_string_candidates))
+        #replace_strings = concat([accumMatches(subtree[2], lambda x: x[:4] == "Top.")
+        #                          for subtree in search_replace_dict.values()])
+        replace_string_candidates = replace_string_candidates - set(replace_strings)
+    search_replace_dict = {k:def_to_subtree[k] for k in def_to_subtree if k in replace_strings}
+    orig_tree = replaceVals(orig_tree, search_replace_dict)
+    return orig_tree
+
+#s = parenStringToLists('../100FamousProofs/Proofs/sqrt2/d2.txt', True)
+#t = replaceDefinitions(s)
+
+#printTree(replaceDefinitions(even_8_tree))
+assert(replaceDefinitions(even_8_tree,2) == replaceDefinitions(even_8_tree))
+
+#+END_SRC
+
+#+RESULTS:
+
+
+** Plotting features of proof trees
+
+*** Plot nodes v depth level
+
+#+BEGIN_SRC python :session
+
+def sumLsts(lsts):
+    max_len = max(map(len, lsts))
+    def zeroFill(lst): return lst + [0]*(max_len - len(lst))
+    return list(map(sum, zip(*map(zeroFill,lsts))))
+
+def countNodesAtDepths(tree):
+    """ Counts num nodes at each depth
+    Example: countNodesAtDepths(['a', 'b', ['c','d','e'], ['c','d','e']])
+    # base: ['c','d','e'] -> [1,2], 'b' -> [1]
+    # ind_step: ['a', [1], [1,2], [1,2]] -> [1,3,4]
+    """
+    if not isinstance(tree, list): return [1]
+    h,t = tree[0], tree[1:]
+    if isFlat(tree): return [1,len(t)]
+    return [1] + sumLsts(list(map(countNodesAtDepths, t)))
+
+def strip(s):
+    return s.split('/')[-1]
+
+def modStrip(s):
+    l = s.split('/')
+    return l[-2] + '_' + l[-1]
+
+assert(countNodesAtDepths(['a', 'b', ['c','d','e'], ['c','d','e']]) == [1,3,4])
+
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC python :session
+
+
+def plotNodesVDepth(theorem_name, max_depth, solid=False):
+  fig, ax = plt.subplots(figsize=(6,6))
+  root = '../100FamousProofs/Proofs/' + theorem_name
+  for d in range(1,max_depth+1):
+      filename = root + '/d'+str(d)+'.txt'
+      if d == 1:
+          ax = plt.subplot(max_depth,1,d)
+      else:
+          ax = plt.subplot(max_depth,1,d, sharex = ax)
+      ax.set_title(theorem_name + ' depth '+str(d))
+      tree = parenStringToLists(filename, is_filename=True)
+      if solid:
+          ax.plot(countNodesAtDepths(tree)[1:], label='No substitution')
+          ax.plot(countNodesAtDepths(replaceDefinitions(tree)), label='Defn substitution')
+      else:
+          ax.plot(countNodesAtDepths(tree)[1:], '_', label='No substitution')
+          ax.plot(countNodesAtDepths(replaceDefinitions(tree)),'|', label='Defn substitution')
+      fig.tight_layout()
+      ax.legend()
+      if d != max_depth:
+          plt.setp(ax.get_xticklabels(), visible=False)
+  plt.savefig('images/'+theorem_name+'.png')
+
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC python :session :results file
+    theorem_name = 'ev_4'
+    plotNodesVDepth(theorem_name,max_depth=2,solid=False)
+    'images/'+theorem_name+'.png'
+#+END_SRC
+
+
+#+RESULTS:
+[[file:images/ev_4.png]]
+
+As expected -- the lines are the same for extraction depth 1.
+
+#+BEGIN_SRC python :session :results file
+    theorem_name = 'ev_8'
+    plotNodesVDepth(theorem_name,max_depth=3)
+    'images/'+theorem_name+'.png'
+#+END_SRC
+
+#+RESULTS:
+[[file:images/ev_8.png]]
+
+Defn substitution again has fewer nodes per depth.
+Extraction levels 2 and 3 have similar plot shapes, but the subbed version carries on further.
+
+
+#+BEGIN_SRC python :session :results file
+    theorem_name = 'sqrt2'
+    plotNodesVDepth(theorem_name,max_depth=4)
+    'images/'+theorem_name+'.png'
+#+END_SRC
+
+#+RESULTS:
+[[file:images/sqrt2.png]]
+
+As extraction depth increases, the pattern for no substitution becomes more front-loaded.
+As extraction depth increases, the pattern for defn substitution becomes more back-loaded.
+
+
+#+BEGIN_SRC python :session :results file
+    theorem_name = 'binomial'
+    plotNodesVDepth(theorem_name,max_depth=3)
+    'images/'+theorem_name+'.png'
+#+END_SRC
+
+#+RESULTS:
+[[file:images/binomial.png]]
+
+What is curious about these plots is that at the tail of extraction depth 2, the plots are the same.
+Guess:
+ There is a single definition tree that is large, even without expansion.
+At depth 3, the effects of the single large chain are mitigated, and we get the front/back-loaded pattern
+
+
+#+BEGIN_SRC python :session :results file
+    theorem_name = 'ballot'
+    #plotNodesVDepth(theorem_name,max_depth=2)
+    'images/'+theorem_name+'.png'
+#+END_SRC
+
+#+RESULTS:
+[[file:images/ballot.png]]
+
+Hard to extract to depth 3 -- big blowup.
+I believe that reason for exponential blowup in extraction is duplication of definition trees.
+ If I fix this, I may be able to expand to further depths.
+
+#+BEGIN_SRC python :session :results file
+    theorem_name = 'inclusion_exclusion'
+    plotNodesVDepth(theorem_name,max_depth=4)
+    'images/'+theorem_name+'.png'
+#+END_SRC
+
+#+RESULTS:
+[[file:images/inclusion_exclusion.png]]
+
+Try breaking out subtrees -- expect one subtree that has this tail picture
+
+Extraction depths 3 and 4 overshadow existence of single massive tree.
+Note that as depth increases, size of subbed tree becomes smaller and smaller wrt no sub tree.
+
+#+BEGIN_SRC python :session :results file
+    theorem_name = 'div3'
+    plotNodesVDepth(theorem_name, max_depth=4)
+    'images/'+theorem_name+'.png'
+#+END_SRC
+
+#+RESULTS:
+[[file:images/div3.png]]
+
+Same pattern.
+
+#+BEGIN_SRC python :session :results file
+    theorem_name = 'birthday'
+    plotNodesVDepth(theorem_name, max_depth=3)
+    'images/'+theorem_name+'.png'
+#+END_SRC
+
+#+RESULTS:
+[[file:images/birthday.png]]
+
+Biggest, most salient example.
+
+
+
+Observations:
+
+In limit of high depth, def substitution yields relatively flat depth curves.
+Some have single dominant branches (namely library defns), but this effect decreases with greater extraction depth
+
+Next:
+ Plot distrib of sizes of subtrees for different d's, to investigate the single dom branch hypo
+
+*** Plot subtree sizes
+
+#+BEGIN_SRC python :session
+
+    def getTreeSize(tree):
+        c = 0
+        for x in tree:
+            if isinstance(x,list):
+                c += getTreeSize(x)
+            else:
+                c += 1
+        return c
+
+    def createSubtreeSizePlot(theorem_name, max_depth, num_bins=10, debug=False):
+        fig, axs = plt.subplots(max_depth, 1, sharex = True, figsize=(6,6))
+        root = '../100FamousProofs/Proofs/' + theorem_name
+        for d in range(1,max_depth+1):
+            filename = root + '/d'+str(d)+'.txt'
+            tree = parenStringToLists(filename, is_filename=True)
+            if debug:
+                printTree(tree)
+            distrib = list(map(getTreeSize, tree[1:]))
+            print(distrib)
+            if max_depth > 1:
+                axs[d-1].hist(distrib, bins=num_bins)
+                axs[d-1].set_title(theorem_name + ' subtree sizes at depth ' + str(d))
+            else:
+                axs.hist(distrib, bins=num_bins)
+                axs.set_title(theorem_name + ' subtree sizes at depth ' + str(d))
+            #print(distrib)
+        plt.savefig('images/'+theorem_name+'_subtree_sizes.png')
+
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC python :session :results file
+    theorem_name = 'ev_4'
+    createSubtreeSizePlot(theorem_name, max_depth=2)
+    'images/'+theorem_name+'_subtree_sizes.png'
+#+END_SRC
+
+#+RESULTS:
+[[file:images/ev_4_subtree_sizes.png]]
+
+The two subtrees just happen to be the same size for ev_4 at extraction depth 2.
+
+#+BEGIN_SRC python :session :results file
+    theorem_name = 'ev_8'
+    #createSubtreeSizePlot(theorem_name, max_depth=3)
+    'images/'+theorem_name+'_subtree_sizes.png'
+#+END_SRC
+
+#+RESULTS:
+[[file:images/ev_8_subtree_sizes.png]]
+
+As expected. Move on to more substantial proofs.
+Eg sqrt2, binomial, ballot
+
+#+BEGIN_SRC python :session :results file
+    theorem_name = 'sqrt2'
+    createSubtreeSizePlot(theorem_name, max_depth=4, num_bins=50)
+    'images/'+theorem_name+'_subtree_sizes.png'
+#+END_SRC
+
+#+RESULTS:
+[[file:images/sqrt2_subtree_sizes.png]]
+
+Getting some massive tree outliers here as well.
+This may be an artifact of duplication or may be inherent.
+At first glance the histogram looks like an exponential dropoff.
+
+#+BEGIN_SRC python :session :results file
+    theorem_name = 'binomial'
+    createSubtreeSizePlot(theorem_name, max_depth=3, num_bins = 50)
+    'images/'+theorem_name+'_subtree_sizes.png'
+#+END_SRC
+
+#+RESULTS:
+[[file:images/binomial_subtree_sizes.png]]
+
+A massive first value <-- as expected
+
+Top
++---Definition
++---+---Coq.Reals.Binomial.binomial
++---+---Lambda
++---+---+---x
++---+---+---Axiom
++---+---+---+---Coq.Reals.Rdefinitions.R
++---+---+---Lambda
++---+---+---+---y
++---+---+---+---Axiom
++---+---+---+---+---Coq.Reals.Rdefinitions.R
++---+---+---+---Lambda
++---+---+---+---+---n
++---+---+---+---+---nat
++---+---+---+---+---App
++---+---+---+---+---+---Coq.Init.Datatypes.nat_ind
++---+---+---+---+---+---Lambda
++---+---+---+---+---+---+---n
++---+---+---+---+---+---+---nat
++---+---+---+---+---+---+---App
++---+---+---+---+---+---+---+---eq
+...
+
+Maybe I am over-expanding somewhere?
+Compare with actual definition.
+
+binomial =
+fun (x y : R) (n : nat) =>
+nat_ind
+  (fun n0 : nat => ((x + y) ^ n0)%R = sum_f_R0 (fun i : nat => (C n0 i * x ^ i * y ^ (n0 - i))%R) n0)
+  (eq_ind_r (fun r : R => 1%R = r)
+     (eq_ind_r (fun r : R => 1%R = r)
+        (eq_ind_r (fun r : R => 1%R = (1 * / r)%R)
+           (eq_ind_r (fun r : R => 1%R = (1 * r)%R)
+              (let hyp_list := Datatypes.nil in
+               let fv_list := Datatypes.nil in
+               RField_ring_lemma1 ring_subst_niter fv_list hyp_list (Ring_polynom.PEc 1%Z)
+                 (Ring_polynom.PEmul (Ring_polynom.PEc 1%Z) (Ring_polynom.PEc 1%Z)) I
+                 (eq_refl
+                  <:
+                  (let lmp :=
+                     Ring_polynom.mk_monpol_list 0%Z 1%Z Z.add Z.mul Z.sub Z.opp Zeq_bool Z.quotrem
+                       hyp_list in
+...
+
+A massive definition, so that is at least part of what is going on.
+Could further investigate this by analyzing the number of duplications.
+ But if I am going to do that I might as well start by removing the source duplications in PrintAST.
+
+#+BEGIN_SRC python :session :results file
+    theorem_name = 'ballot'
+    #createSubtreeSizePlot(theorem_name, max_depth=2)
+    'images/'+theorem_name+'_subtree_sizes.png'
+#+END_SRC
+
+#+RESULTS:
+[[file:images/ballot_subtree_sizes.png]]
+
+
+** Create connectedness graph of theorems
+
+Goal: given a collection of theorems, create the list of theorems that they reference.
+ Then use these theorems and lists to generate a directed graph.
+
+How to deal with extraction depth?
+ Use only extraction depth 1.
+ This way we only generate the graph of "local" dependencies
+
+How to start?
+ Use even_4 and even_8. There should be a dependencies from even_8 to even_4.
+ Then move on to standard library.
+
+#+BEGIN_SRC python :session :results file
+import networkx as nx
+
+# remember to look at Top. in use of binomial earlier
+
+def plotDependencyGraph(theorem_list, outfile, label=False, figsize=(4,2)):
+    theorems_to_dependencies = {}
+    for theorem in theorem_list:
+        orig_tree, dep_trees = theorem[-1], theorem[1:-1]
+        theorems_to_dependencies[orig_tree[1]] = list(map(lambda x:x[1], dep_trees))
+        #print('l:',len(theorems_to_dependencies[orig_tree[1]]))
+    print(theorems_to_dependencies)
+    g = nx.DiGraph(theorems_to_dependencies)
+    plt.figure(figsize=figsize)
+    nx.spring_layout(g, k=5/math.sqrt(g.order()))
+    nx.draw(g, with_labels=label)
+    l,r = plt.xlim()
+    plt.xlim(l-.2,r+.2)
+    plt.savefig(outfile)
+
+def namesToTheorems(location_list):
+   return [parenStringToLists('../100FamousProofs/Proofs/'+l+'/d2.txt', True) for l in location_list]
+
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC python :session :results file
+outfile = 'images/ev_4_8_dependencies.png'
+#plotDependencyGraph(namesToTheorems(['ev_4','ev_8']), outfile, label=True)
+outfile
+#+END_SRC
+
+#+RESULTS:
+[[file:images/ev_4_8_dependencies.png]]
+
+#+BEGIN_SRC python :session :results file
+outfile = 'images/sqrt2_dependencies.png'
+#plotDependencyGraph(namesToTheorems(['sqrt2']), outfile, label=True)
+outfile
+#+END_SRC
+
+#+RESULTS:
+[[file:images/sqrt2_dependencies.png]]
+
+Check out binomial -- should have high out-degree
+
+#+BEGIN_SRC python :session :results file
+outfile = 'images/binomial_dependencies.png'
+#plotDependencyGraph(namesToTheorems(['binomial']), outfile, label=True, figsize = (8,6))
+outfile
+#+END_SRC
+
+#+RESULTS:
+[[file:images/binomial_dependencies.png]]
+
+
+
+
+Hypothesis about what is going on here:
+ Library theorems have many more direct dependencies than the average Coq proof
+
+Create digraph of real number library - RAxioms
+Extraction failing for some reason
+
+#+BEGIN_SRC python :session :results file
+theorem_names = [
+"C",
+"pascal_step1",
+"pascal_step2",
+"pascal_step3",
+"pascal",
+"binomial"
+]
+
+outfile = 'images/real_binomial_dependencies.png'
+locations = ['../100FamousTheorems/Proofs/Reals/Binomial/'+th+'.txt'
+                     for th in theorem_names]
+theorems = list(map(lambda x: parenStringToLists(x,True), locations))
+plotDependencyGraph(theorems, outfile, label=True, figsize = (8,6))
+outfile
+#+END_SRC
+
+#+RESULTS:
+[[file:images/real_binomial_dependencies.png]]
+[[file:['Rplus_comm', 'Rplus_assoc', 'Rplus_opp_r', 'Rplus_0_l', 'Rmult_comm', 'Rmult_assoc', 'Axiom Rinv_l', 'Axiom Rmult_1_l', 'Axiom R1_neq_R0', 'Rmult_plus_distr_l', 'total_order_T', 'Rlt_asym', 'Rlt_trans', 'Rplus_lt_compat_l', 'Rmult_lt_compat_l', 'INR', 'archimed', 'is_upper_bound', 'bound', 'is_lub', 'completeness']]]

@@ -1,0 +1,110 @@
+/-
+Replace the sorrys by proofs.
+-/
+open classical
+
+section
+
+variables {α β : Type} (p q : α → Prop) (r : α → β → Prop)
+
+example : (∀ x, p x) ∧ (∀ x, q x) → ∀ x, p x ∧ q x := sorry
+
+example : (∀ x, p x → q x) → (∀ x, p x) → ∀ x, q x := sorry
+
+example : (∀ x, p x) ∨ (∀ x, q x) → ∀ x, p x ∨ q x := sorry
+
+example : (∃ x, p x ∧ q x) → ∃ x, p x := sorry
+
+example : (∃ x, ∀ y, r x y) → ∀ y, ∃ x, r x y := sorry
+
+end
+
+/-
+The second one requires classical logic. You can use the first to prove
+the second.
+-/
+
+section
+
+variables {α : Type} {p : α → Prop}
+
+theorem e1 : (¬ ∃ x, p x) → ∀ x, ¬ p x := sorry
+
+#check e1
+
+example : (¬ ∀ x, ¬ p x) → ∃ x, p x := sorry
+
+end
+
+/-
+The next problem asks you to write formal statments of some
+theorems of number theory. You can find all the statements and
+definitions on Wikipedia.
+
+You will need to use the notation and notions from the next section.
+-/
+
+section
+
+variables m n : ℕ 
+
+#check m ∣ n    -- m divides n. Type this as \| (not just the bar!) 
+#check m ^ n    -- exponentiation
+#check m < n
+#check m > n
+
+-- the following shows the definition of m | n
+
+example : m ∣ n ↔ ∃ k, n = m * k := iff.refl _
+
+def even (n : ℕ) : Prop := 2 ∣ n
+
+#check even (m^n +3)
+
+end
+
+def prime (n : ℕ) : Prop := sorry
+
+def infinitely_many_primes : Prop := sorry
+
+def Goldbach_conjecture : Prop := sorry
+
+def Fermat's_last_theorem : Prop := sorry
+
+/- the next three are only required of graduate students -/
+
+def Fermat_prime (n : ℕ) : Prop := sorry
+
+def infinitely_many_Fermat_primes : Prop := sorry
+
+def twin_primes_conjecture : Prop := sorry
+
+/- The rest of this assignment is only required of graduate students! -/
+
+/-
+Consider the “barber paradox,” that is, the claim that in a certain town there 
+is a (male) barber that shaves all and only the men who do not shave 
+themselves. Prove that this is a contradiction:
+-/
+
+section
+
+variables (man : Type) (barber : man)
+variable  (shaves : man → man → Prop)
+
+example (h : ∀ x : man, shaves barber x ↔ ¬ shaves x x) : false := sorry
+
+end
+
+/- 
+This requires classical logic. We also need to assume that there is at 
+least one element of the type `α` (you can use the variable `a`).
+-/
+
+section
+
+variables {α : Type} (p : α → Prop) (r : Prop) (a : α)
+
+example : (r → ∃ x, p x) → ∃ x, (r → p x) := sorry
+
+end

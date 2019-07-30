@@ -1,0 +1,112 @@
+Some proofs will not be converted by PrintAST.
+
+Every pf that cannot be converted first tries to load opaque def'ns from disk
+
+There are some pfs that can be printed despite having some opaque dependencies
+
+Defn Unfoldable constant:
+ defined by Definition or Let, or by a command assimilated to a def'n using Fixpoint, Program Definition, etc, or a pf ended by Defined
+ Unfolding a constant means replacing it by its definition
+
+Proof ended by Qed is not unfoldable
+Qed, fxn form of let -> Opaque
+Defined, let -> Transparent
+
+There some unfoldable and foldable pfs that can be converted
+Transparent means able to be reduced.
+ Reduced means replacing name with definition
+
+The Opaque and Transparent commands control reduction strategies
+
+_________________
+
+Find out which proofs I can convert:
+
+Note: Bir_par does not rely on constants/axioms
+      Does not fetch opaque before print bir_par
+
+Fetches from disk do not repeat themselves
+
+| Name          | Declaration | Ending | Opaque Deps | Convertible                |
+|---------------+-------------+--------+-------------+----------------------------|
+| appears       | Fixpoint    | end    | None        | Yes                        |
+| collision     | Fixpoint    | end    | None        | Yes                        |
+| enumerate     | Fixpoint    | end    | None        | Yes                        |
+| len_enum      | Lemma       | Qed    | Only Itself | Yes                        |
+| filter_app    | Lemma       | Qed    | Only Itself | Only w/ @                  |
+| cart_prod     | Fixpoint    | end    | None        | Only w/ @                  |
+| picks         | Fixpoint    | end    | None        | Only w/ @                  |
+| len_cart_prod | Lemma       | Qed    | Yes         | Only w/ @                  |
+| Zlength_picks | Lemma       | Qed    | Yes         | No!                        |
+| bir_par       | Theorem     | Qed    | Yes         | No  (structures.orderstac) |
+
+Looks like the ones that use imports are the ones that cannot be converted!
+May just be working too hard -- may create very large pf.
+  Could put print statement into plugin
+  Could try PrintAST on dependencies
+    Stalls on Zlength_correct.
+So I will need to limit the number of levels of depth
+ Do this in the plugin
+ First do plugin hello world
+
+Tried hello world plugin
+ Complicated instructions that required recompile
+  So set up source setup of Coq
+  Problem is that PrintAST type of plugin doesn't seem to work with the dev version of coq
+ Try tutorial with plain tactic and coq-8.8
+
+ First try with coq from source after native build
+  Actually don't bother here since the PrintAST documentation only guarantees coq 8.8 compatibility
+
+ Go straight to playing with CoqAST on Coq 8.8
+
+Ok, read comments to figure out how to modify.
+
+Guessing that open Format, Constr, Names, Stdarg, Environ, Declarations, Univ
+ add to the namespace
+
+for example ref, may come from somewhere else
+
+Sections:
+ Options, Helper functions, Other helper functions, Names, Variables,
+  MetaVariables, Existential Variables, Indexes, Universes, Universe Instances,
+  Sorts, Casts, Product types and lambdas, Let, Application, Constants,
+  Fixpoints, Inductive types, Inductive constructors, pattern matching,
+  Projections, Full AST, Top-level functionality
+
+Most effective way to understand is to tie to syntax
+List known functioning syntaxes
+ Require Import PrintAST.ASTPlugin.
+ PrintAST le.
+ Set PrintAST Indexing.
+ PrintAST nat.
+ Set PrintAST Show Universes.
+ PrintAST le with depth 1.
+
+To modify the command, change VERNAC COMMAND EXTEND
+ This only occurs at bottom of file
+ Matches "PrintAST" and "PrintAST with depth x"
+  these are the only top level commands
+ Set must be a coq thing
+  Set is a coq command
+  [Local | Global | Export] Set option (num | string)
+  [Local | Global | Export] Set flag
+
+Coq has Flags, Options, and Tables which are settings to control behavior.
+ Flag -- boolean value, eg Asymmetric Patterns
+ option -- numeric or string value, eg Firstorder Depth
+ table -- set of strings or qualids
+
+ This explains why Set can work on option or flag w/ those args
+ Unset is the opposite
+
+ Local -- setting applied w/in the current scope. Original value restored after current module or section
+ Global -- setting val not restored at end of current module or section. Similar to no scope qualifier.
+  Except sets value also when in a file that is Required.
+
+ Export -- Like Local, but if value set in file, importing the file sets the option.
+
+PrintAST adds options:
+ PrintAST Indexing, PrintAST Show Universes.
+
+So the syntaxes I have for this plugin are comprehensive.

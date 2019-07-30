@@ -1,0 +1,168 @@
+(* Require Export IndProp. *)
+
+Inductive ev : nat -> Prop :=
+| ev_0 : ev 0
+| ev_SS : forall n : nat, ev n -> ev (S (S n)).
+
+Print ev.
+
+Check ev_SS.
+
+Theorem ev_4 : ev 4.
+Proof. apply ev_SS. Show Proof. apply ev_SS. apply ev_0. Qed.
+Print ev_4.
+
+Add LoadPath "~/LocalSoftware/CoqAST/plugin/src/".
+
+Require Import PrintAST.ASTPlugin.
+
+PrintAST ev_4.
+
+(*
+Set PrintAST Indexing.
+PrintAST le.
+*)
+
+PrintAST ev_4 with depth 1.
+
+
+
+
+(*
+Require Import AST.AST.
+AST "ev4.json" ev_4.
+*)
+
+Ltac find_if :=
+  match goal with
+   | [ |- if ?X then _ else _ ] => destruct X
+  end.
+
+Theorem hmm : forall (a b c : bool),
+  if a
+    then if b
+      then True
+      else True
+    else if c
+      then True
+      else True.
+  intros; repeat find_if; constructor.
+Qed.
+
+Print hmm.
+Print ev_4.
+
+(* Check checks the type *)
+Check (ev_SS 2 (ev_SS 0 ev_0)).
+Check ev_SS.
+
+Theorem ev_4' : ev 4.
+Proof.
+  apply (ev_SS 2 (ev_SS 0 ev_0)).
+Qed.
+
+Theorem ev_4'' : ev 4.
+Proof.
+  Show Proof.
+  apply ev_SS.
+  Show Proof.
+  apply ev_SS.
+  Show Proof.
+  apply ev_0.
+  Show Proof.
+Qed.
+
+Theorem ev_8 : ev 8.
+Proof.
+  apply (ev_SS 6 (ev_SS 4 (ev_SS 2 (ev_SS 0 ev_0)))).
+Qed.
+
+Definition ev_8' : ev 8 :=
+  (ev_SS 6 (ev_SS 4 (ev_SS 2 (ev_SS 0 ev_0)))).
+
+Theorem ev_plus4 : forall n, ev n -> ev (4 + n).
+Proof.
+  intros n H.
+  apply ev_SS. apply ev_SS. apply H.
+Qed.
+
+Print ev_plus4.
+
+(* There are two sorts of values with arrows in their types
+  1. constructors introduced by Inductively defined data types
+  2. functions
+*)
+
+Definition ev_plus4' : forall n, ev n -> ev (4 + n) :=
+  fun (n : nat) => fun (H : ev n) =>
+  ev_SS (S (S n)) (ev_SS n H).
+
+Inductive or (A B : Prop) : Prop :=
+  | or_introl : A -> A \/ B
+  | or_intror : B -> A \/ B
+where "A \/ B" := (or A B) : type_scope.
+(* the actual logical operators is defined in the above fashion *)
+(* I think this means that the CIC inference rules should
+   almost be treated as a lower level or abstraction *)
+(* And things like ev_SS are to be treated as the inference rules *)
+(* only forall is fundamental in coq, the rest are derived *)
+
+Inductive False : Prop := .
+Inductive True : Prop := I : True.
+Inductive bool : Set :=
+  | true : bool
+  | false : bool.
+
+Module Ex.
+Inductive ex {A:Type} (P: A->Prop) : Prop :=
+| ex_intro : forall x : A, P x -> ex P.
+End Ex.
+
+Theorem left_or : (forall A B : Prop, A -> A \/ B).
+Proof.
+  intros A B. intros H. apply or_introl. apply H.
+Qed.
+Print left_or.
+
+Theorem left_or' : (forall A B : Prop, A -> A \/ B).
+Proof.
+  apply (fun (A B : Prop) (H : A) => or_introl A B H).
+Qed.
+Print left_or'.
+
+(* Does the output of the proof object depend on forward or back chaining? *)
+
+Theorem forward_huge : (forall A B C : Prop, A -> (A->B) -> (A->B->C) -> C).
+Proof.
+  intros A B C.
+  intros proof_of_A A_implies_B A_imp_B_imp_C.
+  pose (proof_of_B := A_implies_B proof_of_A).
+  pose (proof_of_C := A_imp_B_imp_C proof_of_A proof_of_B).
+  exact proof_of_C.
+Qed.
+
+Print forward_huge.
+
+(*From AST Require Import AST.*)
+
+
+Theorem backward_huge : (forall A B C : Prop, A -> (A->B) -> (A->B->C) -> C).
+Proof.
+  intros A B C.
+  intros proof_of_A A_implies_B A_imp_B_imp_C.
+  refine (A_imp_B_imp_C _ _).
+    exact proof_of_A.
+    refine (A_implies_B _).
+      exact proof_of_A.
+Qed.
+Print backward_huge.
+
+Fixpoint plus (n : nat) (m : nat) : nat :=
+  match n with
+  | 0 => m
+  | S n' => S (plus n' m)
+  end.
+
+Print plus.
+
+Print Nat.

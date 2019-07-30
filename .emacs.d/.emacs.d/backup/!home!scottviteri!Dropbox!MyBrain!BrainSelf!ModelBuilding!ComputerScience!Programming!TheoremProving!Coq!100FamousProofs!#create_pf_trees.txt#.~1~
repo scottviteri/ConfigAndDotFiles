@@ -1,0 +1,33 @@
+Some proofs will not be converted by PrintAST.
+
+Every pf that cannot be converted first tries to load opaque def'ns from disk
+
+There are some pfs that can be printed despite having some opaque dependencies
+
+Defn Unfoldable constant:
+ defined by Definition or Let, or by a command assimilated to a def'n using Fixpoint, Program Definition, etc, or a pf ended by Defined
+ Unfolding a constant means replacing it by its definition
+
+Proof ended by Qed is not unfoldable
+Qed, fxn form of let -> Opaque
+Defined, let -> Transparent 
+
+There some unfoldable and foldable pfs that can be converted
+Transparent means able to be reduced.
+ Reduced means replacing name with definition
+
+The Opaque and Transparent commands control reduction strategies
+
+_________________
+
+Find out which proofs I can convert:
+
+| Name       | Declaration | Ending | Opaque Deps | Convertible |
+|------------+-------------+--------+-------------+-------------|
+| appears    | Fixpoint    | end    | None        | Yes         |
+| collision  | Fixpoint    | end    | None        | Yes         |
+| enumerate  | Fixpoint    | end    | None        | Yes         |
+| len_enum   | Lemma       | Qed    | Only Itself | Yes         |
+| filter_app | Lemma       | Qed    |             |             |
+
+  

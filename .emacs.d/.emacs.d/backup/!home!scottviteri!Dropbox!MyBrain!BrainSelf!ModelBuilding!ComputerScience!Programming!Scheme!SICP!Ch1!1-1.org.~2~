@@ -1,0 +1,21 @@
+* SICP Notes
+
+** Chapter 1
+*** 1-1-1
+
+Basic Scheme shell interactions
+
+#+BEGIN_SRC scheme
+(+ 134 325)
+(- 100 23)
+#+END_SRC
+
+#+RESULTS:
+: 77
+
+#+BEGIN_SRC python
+return list(map(lambda x: x**2, range(4)))
+#+END_SRC
+
+#+RESULTS:
+| 0 | 1 | 4 | 9 |

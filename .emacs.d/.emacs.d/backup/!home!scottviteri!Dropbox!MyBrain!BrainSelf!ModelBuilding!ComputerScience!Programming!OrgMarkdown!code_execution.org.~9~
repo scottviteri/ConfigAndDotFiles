@@ -1,0 +1,47 @@
+#+TITLE: Example Document
+
+# Session Mode:
+# blank lines not OK in indented blocks, and don't use return()
+# Source block is passed directly to interactive python;
+# value is value of _ at end.
+
+#+begin_src python :session
+def foo(x):
+  if x>0:
+    return x+1
+  else:
+    return x-1
+
+foo(1)
+#+end_src
+
+#+RESULTS:
+: 2
+
+# Non session mode:
+# blank lines OK in indented blocks, and use return()
+#+begin_src python
+  def foo(x):
+    if x>0: return x+1
+
+    else: return x-1
+
+  return foo(5)
+#+end_src
+
+#+RESULTS:
+: 6
+
+#+begin_src python :session :results file
+  import matplotlib
+  matplotlib.use('Agg')
+  import matplotlib.pyplot as plt
+  fig = plt.figure(figsize=(3,2))
+  plt.plot([1,3,2])
+  fig.tight_layout()
+  plt.savefig('images/myfig.png')
+  'images/myfig.png'
+#+end_src
+
+#+RESULTS:
+[[file:images/myfig.png]]

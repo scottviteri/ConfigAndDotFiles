@@ -1,8 +1,9 @@
 # If you come from bash you might have to change your $PATH.
 # export PATH=$HOME/bin:/usr/local/bin:$PATH
+export LD_LIBRARY_PATH="/usr/local/lib"
 
 # Path to your oh-my-zsh installation.
-  export ZSH=/home/scottviteri/.oh-my-zsh
+export ZSH=/home/scottviteri/.oh-my-zsh
 
 # Set name of the theme to load. Optionally, if you set this to "random"
 # it'll load a random theme each time that oh-my-zsh is loaded.
@@ -83,14 +84,18 @@ source $ZSH/oh-my-zsh.sh
 # Example aliases
 # alias zshconfig="mate ~/.zshrc"
 # alias ohmyzsh="mate ~/.oh-my-zsh"
+
 alias agi='sudo apt install'
-alias HDMI='xrandr --output HDMI-1 --auto --left-of eDP-1'
-alias VGA='xrandr --output VGA-1 --auto --right-of eDP-1'
+alias update='sudo apt update'
+alias HDMI='xrandr --output HDMI-1 --auto --right-of eDP-1'
+alias VGA='xrandr --output VGA-1 --auto --left-of eDP-1'
 alias off='xrandr --output HDMI-1 --off && xrandr --output VGA-1 --off'
 
 bindkey -v
 export DROPBOX="$HOME/Dropbox"
 export MIT="$DROPBOX/MyBrain/BodySelf/FormalEducation/MIT"
+export CMU="$DROPBOX/MyBrain/BodySelf/FormalEducation/CMU"
+export STANFORD="$DROPBOX/MyBrain/BodySelf/FormalEducation/Stanford"
 export CLASSES="$MIT/Year4/Spring"
 export FINANCES="$DROPBOX/MyBrain/OutsideWorld/Finances/Finances"
 export DIARY="$DROPBOX/MyBrain/BrainSelf/Diary"
@@ -102,7 +107,14 @@ export HABITS="$DROPBOX/MyBrain/BodySelf/Habits"
 export APPLICATIONS="$DROPBOX/MyBrain/BodySelf/Career/Applications"
 export EMPLOYMENT="$DROPBOX/MyBrain/BodySelf/Career/Employment"
 export TODO="$DROPBOX/MyBrain/BrainSelf/ToDo"
-export PROG="$DROPBOX/MyBrain/BodySelf/Programming"
+export CS="$DROPBOX/MyBrain/BrainSelf/ModelBuilding/ComputerScience"
+export PROG="$CS/Programming"
 export NECSI="$EMPLOYMENT/NECSI"
-export CMU="$EMPLOYMENT/CMU-DeDeo"
 export PROJECTS="$DROPBOX/MyBrain/BrainSelf/Projects"
+export NIX="$HOME/LocalSoftware/ConfigAndDotFiles/NixFiles"
+export COQ="$PROG/TheoremProving/Coq"
+export PROJ="$COQ/100FamousProofs"
+export WEBSITE="$STANFORD/AllYears/www"
+
+
+

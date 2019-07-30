@@ -1,0 +1,214 @@
+Some proofs will not be converted by PrintAST.
+
+Every pf that cannot be converted first tries to load opaque def'ns from disk
+
+There are some pfs that can be printed despite having some opaque dependencies
+
+Defn Unfoldable constant:
+ defined by Definition or Let, or by a command assimilated to a def'n using Fixpoint, Program Definition, etc, or a pf ended by Defined
+ Unfolding a constant means replacing it by its definition
+
+Proof ended by Qed is not unfoldable
+Qed, fxn form of let -> Opaque
+Defined, let -> Transparent
+
+There some unfoldable and foldable pfs that can be converted
+Transparent means able to be reduced.
+ Reduced means replacing name with definition
+
+The Opaque and Transparent commands control reduction strategies
+
+_________________
+
+Find out which proofs I can convert:
+
+Note: Bir_par does not rely on constants/axioms
+      Does not fetch opaque before print bir_par
+
+Fetches from disk do not repeat themselves
+
+| Name          | Declaration | Ending | Opaque Deps | Convertible                |
+|---------------+-------------+--------+-------------+----------------------------|
+| appears       | Fixpoint    | end    | None        | Yes                        |
+| collision     | Fixpoint    | end    | None        | Yes                        |
+| enumerate     | Fixpoint    | end    | None        | Yes                        |
+| len_enum      | Lemma       | Qed    | Only Itself | Yes                        |
+| filter_app    | Lemma       | Qed    | Only Itself | Only w/ @                  |
+| cart_prod     | Fixpoint    | end    | None        | Only w/ @                  |
+| picks         | Fixpoint    | end    | None        | Only w/ @                  |
+| len_cart_prod | Lemma       | Qed    | Yes         | Only w/ @                  |
+| Zlength_picks | Lemma       | Qed    | Yes         | No!                        |
+| bir_par       | Theorem     | Qed    | Yes         | No  (structures.orderstac) |
+
+Looks like the ones that use imports are the ones that cannot be converted!
+May just be working too hard -- may create very large pf.
+  Could put print statement into plugin
+  Could try PrintAST on dependencies
+    Stalls on Zlength_correct.
+So I will need to limit the number of levels of depth
+ Do this in the plugin
+ First do plugin hello world
+
+Tried hello world plugin
+ Complicated instructions that required recompile
+  So set up source setup of Coq
+  Problem is that PrintAST type of plugin doesn't seem to work with the dev version of coq
+ Try tutorial with plain tactic and coq-8.8
+
+ First try with coq from source after native build
+  Actually don't bother here since the PrintAST documentation only guarantees coq 8.8 compatibility
+
+ Go straight to playing with CoqAST on Coq 8.8
+
+Ok, read comments to figure out how to modify.
+
+Guessing that open Format, Constr, Names, Stdarg, Environ, Declarations, Univ
+ add to the namespace
+
+for example ref, may come from somewhere else
+
+Sections:
+ Options, Helper functions, Other helper functions, Names, Variables,
+  MetaVariables, Existential Variables, Indexes, Universes, Universe Instances,
+  Sorts, Casts, Product types and lambdas, Let, Application, Constants,
+  Fixpoints, Inductive types, Inductive constructors, pattern matching,
+  Projections, Full AST, Top-level functionality
+
+Most effective way to understand is to tie to syntax
+List known functioning syntaxes
+ Require Import PrintAST.ASTPlugin.
+ PrintAST le.
+ Set PrintAST Indexing.
+ PrintAST nat.
+ Set PrintAST Show Universes.
+ PrintAST le with depth 1.
+
+To modify the command, change VERNAC COMMAND EXTEND
+ This only occurs at bottom of file
+ Matches "PrintAST" and "PrintAST with depth x"
+  these are the only top level commands
+ Set must be a coq thing
+  Set is a coq command
+  [Local | Global | Export] Set option (num | string)
+  [Local | Global | Export] Set flag
+
+Coq has Flags, Options, and Tables which are settings to control behavior.
+ Flag -- boolean value, eg Asymmetric Patterns
+ option -- numeric or string value, eg Firstorder Depth
+ table -- set of strings or qualids
+
+ This explains why Set can work on option or flag w/ those args
+ Unset is the opposite
+
+ Local -- setting applied w/in the current scope. Original value restored after current module or section
+ Global -- setting val not restored at end of current module or section. Similar to no scope qualifier.
+  Except sets value also when in a file that is Required.
+
+ Export -- Like Local, but if value set in file, importing the file sets the option.
+
+PrintAST adds options:
+ PrintAST Indexing, PrintAST Show Universes.
+
+So the syntaxes I have for this plugin are comprehensive.
+I set up autocomplete and modes for ocaml to increase my understanding of what comes from where
+
+So what does "let _ =" mean?
+ Throws away the results of results of computation
+ So this is only useful for effectful computation
+
+What exactly is Goptions?
+Pp.pp_with is not in the enviroment, so why is it being used?
+ Must be the Coq pretty printer
+ I am assuming Goptions must come from Coq as well
+
+evar stands for existential variable
+
+What is module CRD?
+ Why is it referenced? CRD.to_tuple
+
+Things that don't seem to be defined
+ Goptions, CRD, Pp, Pfedit, Constrintern, EConstr,
+  constr, integer, "VERNAC COMMAND EXTEND"
+ Many of the types -- eg Name.
+
+constintern.ml is in the interp folder of the source
+ it opens Pp
+
+
+ Pp is opened in names.xl
+
+
+Top-level functionality
+ apply_to_definition -- apply fxn to a def up to certain depth
+  Always unfold the first constant or inductive definition
+
+Use simple example to test modifications
+
+build_ast --
+ Rel i, Var v, Meta mv, Evar (k, cs), Sort s, Cast (c, k, t),
+ Prod (n , t, b), Lambda (n, t, b), LetIn (n, trm, typ, b),
+ App (f, xs), Const (c, u), Construct ((i, c_index), u),
+ Ind ((i, i_index), u), Case (ci, ct, m, bs)
+
+Mind means mutually inductive
+
+
+
+Why do I want to know where things like Pp come from?
+ Because otherwise I would have no idea to write this myself
+ Conceptually, what needs to happen in a plugin
+  Well it adds to Vernacular, and also adds options
+   So really it does have to interface and modify the language
+ So there must be a spot where the vernacular is defined to accept plugin definitions, for instance
+  These plugins must use the same fxns that the regular vernacular do
+
+Find the actual vernacular to get a good look
+
+I cannot do all of the searches that I want to do since I am working form the binary version
+Maybe good to be safe and work from 8.8 source to avoid confusion
+ Now have a coq.8.8.1 and coq.8.8.source
+
+coq.8.8.source is not strictly necessary but I would like to have an environment where I can still edit with merlin/tuareg if possible
+
+The problem being that I would also have to switch my tuareg-site-file
+I am not sure if besides that emacs completions will continue to work or not
+ Depends if things are dynamically loaded
+
+Give up on building 8.8 source
+ Dated dependency stuff I don't want to deal with right now
+ I was using the wrong version (8.0)!
+  Try again
+
+Read INSTALL
+eval `opam config env` &&
+opam install -y num ocamlfind camlp5 lablgtk conf-gtksourceview &&
+make clean &&
+./configure -local &&
+make -j4
+
+Success
+
+Try PrintAST with this source!
+eval `opam config env` && cd bin && coqtop
+Cannot find physical path bound to logical path matching suffic PrintAST
+
+Could this have to do with how I build CoqAST?
+ Built CoqAST with coq built from source, got illegal beginning of vernac
+
+Add LoadPath "~/LocalSoftware/CoqASTSource/plugin/src".
+Require Import PrintAST.ASTPlugin.
+PrintAST nat.
+
+Works!
+What about with CoqASTBinary?
+
+Add LoadPath "~/LocalSoftware/CoqASTBinary/plugin/src".
+Doesn't work -- implementation mismatch!
+
+So CoqAST is sensitive to which coq builds it
+
+My guess is that CoqAST actually does work with the latest coq source
+ But not worth messing with at the moment
+ Right now use 8.8 source
+
+Get emacs working with 8.8 source.

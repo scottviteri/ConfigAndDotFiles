@@ -1,0 +1,39 @@
+(load-extension "libfive-guile" "scm_init_libfive_modules")
+; cannot load-extension when run as a file -- loadpath must be different
+(use-modules (inspekt3d viewer)
+             (libfive shapes) (libfive kernel) (libfive vec)
+             (libfive transforms) (libfive csg))
+
+(define (expt-irrat b n)
+  (exp (* n (log b))))
+
+(define (compose f g)
+  (lambda (x) (f (g x))))
+
+(define (lp-norm p)
+  (lambda-shape (x y z)
+    (let ((p-pow (lambda (x) (expt-irrat x p))))
+    (- (expt-irrat (apply + (map (compose p-pow abs) (list x y z)))
+                   (/ 1 p))
+       1))))
+
+(make-viewer)
+
+(define bounds '((-1 . 1) (-1 . 1) (-1 . 1)))
+
+;(set-shape (sphere 0.5) bounds 10)
+
+(define (rot shape count)
+  (if (> count 0)
+      (begin (usleep 50000)
+             (set-shape shape bounds 10)
+             (rot (rotate-z shape 0.1) (- count 1)))
+      )
+  )
+
+(set-shape (box-centered (* .8 #[1 1 1])) bounds 10)
+
+;(rot (box-centered (* 0.8 #[1 1 1])) 300)
+
+;(shape->mesh (lp-norm 1) "test.stl" 10 '((-2 . 2) (-2 . 2) (-2 . 2)))
+;(quit)

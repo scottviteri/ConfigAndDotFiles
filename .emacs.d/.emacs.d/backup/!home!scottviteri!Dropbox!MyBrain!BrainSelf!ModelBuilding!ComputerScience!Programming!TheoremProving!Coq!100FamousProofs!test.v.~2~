@@ -1,0 +1,58 @@
+Add LoadPath "~/LocalSoftware/CoqASTSource/plugin/src/".
+Require Import PrintAST.ASTPlugin.
+
+Section program_version.
+
+Definition app : forall {A B: Type}, A -> (A -> B) -> B :=
+  fun (A B : Type) (a : A) (f_ab : A -> B) => f_ab a.
+
+Definition compose : forall {A B C : Type}, (B -> C) -> (A -> B) -> A -> C :=
+  fun (A B C : Type) (f_bc : B -> C) (f_ab : A -> B) (a : A) => f_bc (f_ab a).
+
+Print compose.
+(* PrintAST @compose. *)
+
+Definition flip : forall {A B C : Type}, (A -> B -> C) -> (B -> A -> C) :=
+  fun (A B C : Type) (fabc : A -> B -> C) => (fun (b' : B) (a' : A) => fabc a' b').
+
+Check flip app.
+
+End program_version.
+
+Section proposition_version.
+
+  Variable A B C : Prop.
+
+  Definition modens_ponens : A -> (A -> B) -> B.
+  Proof. apply app. Qed.
+
+  (*  Proof. apply (fun (ha : A) (hab : A -> B) => hab ha). Qed. *)
+  (* PrintAST modens_ponens. *)
+
+  Definition flip_modens_ponens : (A -> B) -> A -> B.
+  Proof. apply (flip app). Qed.
+
+  PrintAST flip_modens_ponens.
+
+  (*
+  Definition trans : (B -> C) -> (A -> B) -> A -> C.
+  Proof. apply compose. Qed.
+
+  PrintAST trans.
+  *)
+
+ (* Proof. apply (fun (hbc : B -> C) (hab : A -> B) (ha : A) => hbc (hab ha)). Qed. *)
+
+End proposition_version.
+
+(*
+Theorem forward_huge : (forall A B C : Prop, A -> (A->B) -> (A->B->C) -> C).
+Proof.
+  intros A B C.
+  intros proof_of_A A_implies_B A_imp_B_imp_C.
+  pose (proof_of_B := A_implies_B proof_of_A).
+  pose (proof_of_C := A_imp_B_imp_C proof_of_A proof_of_B).
+  exact proof_of_C.
+Qed.
+
+*)

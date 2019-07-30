@@ -1,0 +1,16 @@
+Add LoadPath "~/LocalSoftware/CoqASTSource/plugin/src/".
+Add LoadPath "./".
+Require Import PrintAST.ASTPlugin.
+
+
+Fixpoint fact (n: nat) : nat :=
+  match n with
+  | 0 => 1
+  | S n' => n * (fact n')
+  end.
+
+
+Compute (fact 4).
+
+Require Import Arith.
+PrintAST well_founded_lt_compat with depth 2.

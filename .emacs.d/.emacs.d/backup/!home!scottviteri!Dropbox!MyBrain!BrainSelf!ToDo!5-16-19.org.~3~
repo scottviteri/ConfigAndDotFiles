@@ -1,0 +1,22 @@
+
+* TODO Count motif matches in pf tree (not with closure)
+** Figure out how to do this sort of motif matching
+   :LOGBOOK:
+   CLOCK: [2019-05-16 Thu 10:04]--[2019-05-16 Thu 10:29] =>  0:25
+   :END:
+
+Loop through each node and check if children are a subset.
+Wait, this weak notion does not make sense in of itself ...
+ Because could match all combinations further down the graph
+ Unless counting all of those as 1
+ Maybe considering at most one match per node in dag
+  If so, look at all structures under node of size |len motif| and check isomorph
+  Even more confusing because could come back into self -- more edges but no more nodes
+   Same nodes can be connected in different ways?
+
+ Give up on this for now -- move to clustering
+
+* TODO Louvain clustering
+
+
+* TODO Speed up conversion from lists to DAG

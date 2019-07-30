@@ -1,0 +1,9 @@
+module CollatzConjecture (collatz) where
+
+collatz :: Integer -> Maybe Integer
+collatz start
+    | start <= 0 = Nothing
+    | start == 1 = Just 0
+    | otherwise = Just (toInteger $ length collatzSequence)
+    where genNextCollatz n = if even n then (n `quot` 2) else (3*n + 1)
+          collatzSequence = takeWhile (\x -> x /= 1) $ iterate genNextCollatz start

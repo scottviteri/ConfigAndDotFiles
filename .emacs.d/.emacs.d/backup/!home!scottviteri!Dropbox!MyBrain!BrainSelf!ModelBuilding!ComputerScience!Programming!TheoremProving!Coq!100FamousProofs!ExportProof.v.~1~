@@ -1,0 +1,5 @@
+Add LoadPath "~/LocalSoftware/CoqASTBinary/plugin/src/".
+Require Import PrintAST.ASTPlugin.
+Require Import sqrt2.
+
+PrintAST sqrt2_not_rational.

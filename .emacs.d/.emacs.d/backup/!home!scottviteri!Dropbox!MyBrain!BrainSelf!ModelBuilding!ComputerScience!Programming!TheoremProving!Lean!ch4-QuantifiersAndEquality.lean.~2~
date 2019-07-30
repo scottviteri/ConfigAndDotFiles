@@ -1,0 +1,208 @@
+/- Quantifiers and Equality
+ Add universal and existential quantification, and the equality relation to the the mix of propositional connectives
+-/
+
+namespace univ_quant_1
+  -- Universal Quantifier
+  variables (α : Type) (p q : α → Prop)
+  example : (∀ x : α, p x ∧ q x) → ∀ y : α, p y :=
+    assume (hpq : ∀ x : α, p x ∧ q x),
+    assume (y : α),
+    show p y, from (hpq y).left
+
+  example : (forall x : α, p x ∧ q x) → ∀ x : α, p x :=
+    assume (hpq : ∀ x : α, p x ∧ q x),
+    assume (x : α),
+    show p x, from (hpq x).left
+
+  variable r : α → α → Prop -- form of a binary relation
+  variable trans_r : ∀ x y z, r x y → r y z → r x z
+  variables a b c : α
+  variables (hab : r a b) (hbc : r b c)
+
+  #check trans_r
+  #check trans_r a b c
+  #check trans_r a b c hab hbc
+
+
+end univ_quant_1
+
+namespace univ_quant_2
+
+  variable (α : Type)
+  variable (r : α → α → Prop)
+  variables (a b c d : α)
+
+  variable refl_r : ∀x, r x x
+  variable symm_r : ∀ {x y} , r x y → r y x
+  variable trans_r : ∀ {x y z}, r x y → r y z → r x z
+  -- trans_r already specified
+
+  variables (hab : r a b) (hbc : r b c)
+  #check trans_r hab hbc
+  #check symm_r hab
+
+  example (a b c d : α) (hab : r a b) (hcb : r c b) (hcd : r c d) : r a d :=
+    have hbc : r b c, from symm_r hcb,
+    trans_r (trans_r hab hbc) hcd
+
+  #check eq.refl
+  #check eq.symm
+  #check eq.trans
+
+  universe u
+  #check @eq.refl.{u}
+  #check @eq.symm.{u}
+  #check @eq.trans.{u} -- ∀ (α : Sort u) (a b c : α), a = b → b = c → a = c
+
+end univ_quant_2
+
+namespace univ_quant_3
+
+  universe u
+  variables (α : Sort u) (a b c d : α) (hab : a = b) (hcb : c = b) (hcd : c = d)
+
+  example : a = d :=
+    have hbc : b = c, from eq.symm hcb,
+    show a = d, from eq.trans hab (eq.trans hbc hcd)
+
+  #check hab.trans hcb.symm
+  example : a = d := (hab.trans (hcb.symm.trans hcd))
+
+end univ_quant_3
+
+namespace univ_quant_4
+
+  universe u
+
+  variables (α β : Type u)
+  #print eq.refl
+  #check eq.refl α
+
+  example (f : α → β) (a : α) : (λ x, f x) a = f a := eq.refl (f a)
+  example (f : α → β) (a : α) : (λ x, f x) a = f a := eq.refl _
+  example (a b : α) : (a, b).1 = a := eq.refl a
+  example (a b : α) : (a, b).1 = a := eq.refl _
+
+  example : 2 + 3 = 5 := eq.refl _
+  example : 2 + 3 = 5 := rfl
+
+  /-
+  eq has another property besides that it is an equivalence relation.
+  Substition of an equal value does not change the truth value of an expression.
+  h1 : a = b and h2 : p a  → eq.subst h1 h2 : p b
+  -/
+
+  example (α : Type u) (a b : α) (p : α → Prop) (h1 : a = b) (h2 : p a) : p b :=
+    eq.subst h1 h2
+
+  example (α : Type u) (a b : α) (p : α → Prop) (h1 : a = b) (h2 : p a) : p b :=
+    h1 ▸ h2
+
+end univ_quant_4
+
+namespace univ_quant_5
+  variables (α : Type) (a b : α) (f g : α → ℕ) (h1 : a = b) (h2 : f = g)
+  #check congr_arg
+  #check congr_fun
+  #check congr
+
+  example : f a = f b := congr_arg f h1
+  example : f a = g a := congr_fun h2 a
+  example : f a = g b := congr h2 h1
+
+end univ_quant_5
+
+namespace univ_quant_6
+  variables a b c d : ℤ
+  #print add_zero
+  #print mul_one
+  #print add_assoc
+
+  example : a + 0 = a := add_zero a
+  example : 0 + a = a := zero_add a
+  example : a * 1 = a := mul_one a
+  example : 1 * a = a := one_mul a
+  example : -a + a = 0 := neg_add_self a
+  example : a + -a = 0 := add_neg_self a
+  example : a + b = b + a := add_comm a b
+  example : a + b + c = a + (b + c) := add_assoc a b c
+  example : a * b = b * a := mul_comm a b
+  example : a * b * c = a * (b * c) := mul_assoc a b c
+  example : a * (b + c) = a * b + a * c := mul_add a b c
+  example : a * (b + c) = a * b + a * c := left_distrib a b c
+  example : (a + b) * c = a * c + b * c := add_mul a b c
+  example : (a + b) * c = a * c + b * c := right_distrib a b c
+  example : a * (b - c) = a * b - a * c := mul_sub a b c
+  example : (a - b) * c = a * c - b * c := sub_mul a b c
+
+  variables x y z : ℤ
+  example (x y z : ℕ) : x * (y + z) = x * y + x * z := mul_add x y z
+  example (x y z : ℕ) : (x + y) * z = x * z + y * z := add_mul x y z
+  example (x y z : ℕ) : x + y + z = x + (y + z) := add_assoc x y z
+
+  #check (mul_add (x + y) x y)
+  example (x y : ℕ) : (x + y) * (x + y) = x * x + y * x + x * y + y * y :=
+    have h1 : (x + y) * (x + y) = (x + y) * x + (x + y) * y, from mul_add (x + y) x y,
+    have xy_times_x : (x + y) * x = x * x + y * x, from add_mul x y x,
+    have xy_times_y : (x + y) * y = x * y + y * y, from add_mul x y y,
+
+    have h2 : (x + y) * (x + y) = x * x + y * x + (x * y + y * y),
+      from xy_times_x ▸ (xy_times_y ▸ h1),
+    h2.trans (add_assoc (x * x + y * x) (x * y) (y * y)).symm
+
+end univ_quant_6
+
+namespace calc_pfs
+  variables (a b c d e : ℕ)
+  variables (h1 : a = b) (h2 : b = c + 1) (h3 : c = d) (h4 : e = 1 + d)
+
+  #check add_comm 1 d
+  theorem T : a = e :=
+  calc
+    a   = b : h1
+    ... = c + 1 : h2
+    ... = d + 1 : congr_arg _ h3
+    ... = 1 + d : add_comm d (1:ℕ)
+    ... = e : h4.symm
+
+  include h1 h2 h3 h4
+  theorem T' : a = e :=
+  calc
+    a   = b : by rw h1
+    ... = c + 1 : by rw h2
+    ... = d + 1 : by rw h3
+    ... = 1 + d : by rw add_comm
+    ... = e : by rw h4
+
+  theorem T'' : a = e :=
+  calc
+    a   = d + 1 : by rw [h1, h2, h3]
+    ... = 1 + d : by rw add_comm
+    ... = e : by rw h4
+
+  theorem T''' : a = e := by rw [h1, h2, h3, add_comm, h4]
+
+  theorem T'''' : a = e :=
+    by simp [h1, h2, h3, h4]
+
+
+
+end calc_pfs
+
+namespace calc_pfs_2
+  -- calc can be used with any relation that supports transitivity
+
+  #check has_lt ℕ
+  #check gt
+  #check has_le
+  #check has_le.le
+  theorem T2 (a b c d : ℕ) (h1 : a = b) (h2 : b ≤ c) (h3 : c + 1 < d) : a < d :=
+    calc
+      a   = b : h1
+      ... ≤ c : h2
+
+
+
+
+end calc_pfs_2

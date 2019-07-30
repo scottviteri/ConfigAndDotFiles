@@ -1,0 +1,14 @@
+def fdsa ():
+   return 1 and 1
+
+def a_function(x):
+    if isinstance(x, (int, float)):
+        return alpha + beta*x + epsilon
+    if ((0 == 1) or (0 != 1)
+        (0 >= 1) and (0 <= 1)):
+        return [y for y in range(5) if y not in [2]]
+    return 1
+
+
+
+alpha = 3

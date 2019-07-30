@@ -1,0 +1,315 @@
+
+# coding: utf-8
+
+# In[1]:
+
+
+s1 = '(Definition Top.ev_4 (App (Construct (Name ev) 2) (App (Construct (Name nat) 2) (App (Construct (Name nat) 2) (Construct (Name nat) 1))) (App (Construct (Name ev) 2) (Construct (Name nat) 1) (Construct (Name ev) 1))))'
+
+s2 = '(Definition Top.ev_8 (App (Construct (Name ev) 2) (App (Construct (Name nat) 2) (App (Construct (Name nat) 2) (App (Construct (Name nat) 2) (App (Construct (Name nat) 2) (App (Construct (Name nat) 2) (App (Construct (Name nat) 2) (Construct (Name nat) 1))))))) (App (Construct (Name ev) 2) (App (Construct (Name nat) 2) (App (Construct (Name nat) 2) (App (Construct (Name nat) 2) (App (Construct (Name nat) 2) (Construct (Name nat) 1))))) (App (Construct (Name ev) 2) (App (Construct (Name nat) 2) (App (Construct (Name nat) 2) (Construct (Name nat) 1))) (App (Construct (Name ev) 2) (Construct (Name nat) 1) (Construct (Name ev) 1))))))'
+
+
+# In[2]:
+
+
+def push(obj, l, depth):
+    while depth:
+        l = l[-1]
+        depth -= 1
+    l.append(obj)
+
+def parse_parentheses(s):
+    s = s[1:-1]
+    groups = []
+    depth = 0
+    try:
+        word = ''
+        for char in s:
+            if char == '(':
+                push([], groups, depth)
+                depth += 1
+            elif char == ')':
+                if word:
+                    push(word, groups, depth)
+                    word = ''
+                depth -= 1
+            elif char == ' ':
+                if word:
+                    push(word, groups, depth)
+                    word = ''
+            else:
+                word += char
+    except IndexError:
+        raise Exception('Parentheses mismatch')
+    if depth > 0:
+        raise Exception('Parentheses mismatch')
+    else:
+        return groups
+
+
+# In[3]:
+
+
+print(parse_parentheses(s1))     
+
+
+# In[135]:
+
+
+def print_list(lst, level=0):
+    print('    ' * (level - 1) + '+---' * (level > 0) + lst[0])
+    for l in lst[1:]:
+        if type(l) is list:
+            print_list(l, level + 1)
+        else:
+            print('    ' * level + '+---' + l)
+
+
+# In[136]:
+
+
+print_list(parse_parentheses(s1))
+
+
+# In[137]:
+
+
+p1, p2 = parse_parentheses(s1), parse_parentheses(s2)
+
+
+# In[184]:
+
+
+import copy 
+
+class Tree: # node | List Tree
+    def __init__(self, name):
+        self._name = name
+        self._children = []
+        self._parent = None
+        self._height = 0
+    def getName(self):
+        return self._name
+    def setName(self, name):
+        self._name = name
+        return self
+    def getParent(self):
+        return self._parent
+    def setParent(self, parent):
+        self._parent = parent
+        return self
+    def getChildren(self):
+        return copy.copy(self._children)
+    def getChildrenByName(self, name):
+        return list(filter(lambda ch : ch.getName() == name, self.getChildren()))
+    def setChildren(self, children):
+        self._children = copy.copy(children)
+        child_trees = []
+        for child in children:
+            if isinstance(child,str):
+                child_trees.append(Tree(child).setParent(self))
+            else: #already is a tree
+                child_trees.append(child.setParent(self))
+        self._height = max(map(lambda x: x.getHeight(), child_trees)) + 1
+        self._children = child_trees
+        return self
+    def addChild(self, child):
+        if isinstance(child,str):
+            child = Tree(child).setParent(self)
+        else:
+            child = child.setParent(self)
+        self._height = max(map(lambda x: x.getHeight(), self.getChildren() + [child])) + 1
+        self._children.append(child)
+    def getHeight(self):
+        return self._height
+    def isLeaf(self):
+        return self.getHeight() == 0
+    
+
+
+# In[158]:
+
+
+def print_tree(tree, level=0):
+    print('    ' * (level - 1) + '+---' * (level > 0) + tree.getName())
+    for child in tree.getChildren():
+        if child.isLeaf():
+            print('    ' * level + '+---' + child.getName())
+        else:
+            print_tree(child, level + 1)
+
+
+# In[177]:
+
+
+t = Tree('root')
+print(t); print(t.getName())
+print_tree(t.setChildren(['hi',Tree('zach').setChildren(['zumbo']), 'there']))
+
+
+# In[185]:
+
+
+def listsToTree(lst):
+    if lst:
+        t = Tree(lst[0])
+        for x in lst[1:]:
+            if isinstance(x,str):
+                t.addChild(x)
+            elif isinstance(x,list):
+                if x:
+                    t.addChild(listsToTree(x))
+    return t
+
+
+# In[186]:
+
+
+t1, t2 = listsToTree(p1), listsToTree(p2)
+print_tree(t1)
+
+
+# In[187]:
+
+
+def treeListToDict(tree):
+    if isinstance(tree, str): return tree 
+    return {tree[0]: [treeListToDict(tree[i]) for i in range(1, len(tree))]}
+
+d1, d2 = treeListToDict(p1), treeListToDict(p2)
+print(d1)
+
+
+# In[188]:
+
+
+print(t1)
+print(t1.getName(), t1.getChildren())
+
+
+# In[189]:
+
+
+def dfs_test(tree):
+    print(tree.getName())
+    for child in tree.getChildren():
+        dfs_test(child)
+        
+dfs_test(t1)
+
+
+# In[190]:
+
+
+def dfs(tree):
+    yield(tree)
+    for child in tree.getChildren():
+        yield from dfs(child)
+
+def bfs(tree):
+    yield(tree)
+    queue = tree.getChildren()
+    while queue:
+        next_tree = queue.pop(0)
+        yield next_tree
+        queue.extend(next_tree.getChildren())
+
+
+# In[191]:
+
+
+for x in iter(bfs(t1)):
+    print(x.getName(), x.getHeight()) #height is longest path to a leaf
+
+
+# In[192]:
+
+
+#trying to minimize total num nodes
+#def generateMotifs(tree):
+#    #Find all subtrees with more than one occurrence
+#    pass
+#def pickMotif(list_of_motifs):
+#    #decide which motifs to use for compression
+#def compressTree(tree, motif):
+# finish when no more motifs
+
+
+# In[193]:
+
+
+#def checkEqual(t1,t2):
+def subset(l1,l2): #check l1 subset of l2
+    return all([l in l2 for l in l1])
+
+def subsetWithCounting(l1,l2): #check l1 bag subset of l2
+    return all([l1.count(l)<=l2.count(l) for l in l1])
+
+def checkSubTreeAtGivenStart(t1,t2): #non-intersect pick first 
+    if t1.getName() != t2.getName(): return False
+    t1_children_names = list(map(lambda ch : ch.getName(), t1.getChildren()))
+    if not subsetWithCounting(t1_children_names, list(map(lambda ch: ch.getName(),t2.getChildren()))):
+        return False
+    if t1.isLeaf(): return True
+    return all([checkSubTreeAtGivenStart(t1.getChildrenByName(name)[0],
+                                         t2.getChildrenByName(name)[0]) 
+                for name in t1_children_names])
+
+
+# In[201]:
+
+
+print(subset([1,1],[1]))
+print(subsetWithCounting([1,1],[1]))
+print()
+
+t1 = Tree('a').setChildren(['c','b'])
+t2 = Tree('a').setChildren(['b','c'])
+print_tree(t1)
+print_tree(t2)
+print(checkSubTreeAtGivenStart(t1,t2))
+print()
+
+t1 = Tree('a').setChildren(['c','b','c'])
+t2 = Tree('a').setChildren(['b','c'])
+print_tree(t1)
+print_tree(t2)
+print(checkSubTreeAtGivenStart(t1,t2))
+
+
+# In[ ]:
+
+
+#using non-intersecting matches for simplicity
+def getAllSubtreeMatches(t1,t2): #num times t1 in t2
+    return [t2_start for t2_start in iter(bfs(t2) if)
+        checkSubTreeAtGivenStart(t1,t2_start)]
+
+def findDuplicateSubtrees(tree): #let order matter here
+    seen_trees = set([])
+    dfs_iterator = iter(dfs(t1))
+    for start_node in dfs_iterator:
+        bfs_iterator_from_start_node = iter(bfs(start_node))
+        next(bfs_iterator_from_start_node) #skip start_node itself
+        for end_node
+#findDuplicateSubtrees(t1)
+
+
+# In[ ]:
+
+
+class Solution(object):
+    def findDuplicateSubtrees(self, root):
+        count = collections.Counter()
+        ans = []
+        def collect(node):
+            if not node: return "#"
+            serial = "{},{},{}".format(node.val, collect(node.left), collect(node.right))
+            count[serial] += 1
+            if count[serial] == 2:
+                ans.append(node)
+            return serial
+
+        collect(root)
+        return ans
+

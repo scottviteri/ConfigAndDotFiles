@@ -1,0 +1,10 @@
+module Isogram (isIsogram) where
+
+import qualified Data.List as L (nub)
+import qualified Data.Char as C (isSpace, toLower)
+
+isIsogram :: String -> Bool
+isIsogram str = length loweredStripped == (length . L.nub $ loweredStripped)
+  where
+    strippedString = filter (\x -> not $ or [x=='-', C.isSpace x]) str
+    loweredStripped = map C.toLower strippedString

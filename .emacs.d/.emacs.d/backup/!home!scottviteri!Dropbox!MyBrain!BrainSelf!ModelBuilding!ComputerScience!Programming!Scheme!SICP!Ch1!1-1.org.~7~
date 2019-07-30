@@ -1,0 +1,215 @@
+* SICP Notes
+
+** Chapter 1
+*** 1-1-1
+
+Basic Scheme shell interactions
+
+#+BEGIN_SRC scheme :session :results output
+  (use-modules (srfi srfi-1))
+  (display (+ 134 325))
+  (newline)
+  (display (- 100 23))
+#+END_SRC
+
+#+RESULTS:
+: 459
+: 77
+
+*** 1-1-2
+
+Definition
+
+#+BEGIN_SRC scheme :session :results output
+  (define size 2)
+  (display (* 4 size))
+#+END_SRC
+
+#+RESULTS:
+: 8
+
+*** 1-1-3
+
+Eval combinations by
+1. Eval sub expressions
+2. Apply left-most procedure to arguments
+
+Other syntax such as define are "special forms".
+Each special form has its own evaluation rule.
+
+*** 1-1-4
+
+Procedures can be composite
+Want to get smartparen mode working for scheme
+
+#+BEGIN_SRC scheme :session :results output
+  (define (square x) (* x x))
+  (display (square 24))
+  (define (sum-of-squares x y)
+    (+ (square x) (square y)))
+#+END_SRC
+
+#+RESULTS:
+: 576
+
+Compound procedures are used in exactly the same way as primitive procedures.
+Could not tell difference by looking at the def of sum-of-squares where square was built
+ into the interpreter
+
+*** 1-1-5
+
+#+BEGIN_SRC scheme :session :results output
+  (define (f a) (sum-of-squares (+ a 1) (* a 2)))
+  (display (f 5))
+#+END_SRC
+
+#+RESULTS:
+: 136
+
+What is the evaluation procedure for (f 5)?
+First, fetch body: (sum-of-squares (+ a 1) (* a 2))
+Then sub arg:      (sum-of-squares (+ 5 1) (* 5 2))
+Solve sub exprs:   (sum-of-squares 6 10)
+Sub body:          (+ (* 6 6) (* 10 10))
+Solve sub exprs:   (+ 36 100)
+                   136
+
+This 'substitution model' is a way to think about the program, but the interpreter is not necessarily implemented this way.
+
+Scheme uses the above -- applicative order
+In Chapter 3, will introduce "stream processing" as a limited way of handling "infinite data structures"
+by incorporating a limited form of normal-order evaluation.
+
+*** 1-1-6
+
+Case Analysis
+
+#+BEGIN_SRC scheme :session :results output
+  (define (abs x)
+    (cond ((> x 0) x)
+          ((= x 0) 0)
+          ((< x 0) (- x))))
+  (display (abs (- 10)))
+  (newline)
+  (display (abs 10))
+#+END_SRC
+
+#+RESULTS:
+: 10
+: 10
+
+Compound predicates:
+ and evaluates args, and immediately returns if any arg evaluates to false
+ or evals args, and immediately returns if any arg evaluates to true
+
+#+BEGIN_SRC scheme :session :results output
+  (define (>= x y)
+    (or (> x y) (= x y)))
+#+END_SRC
+
+Define procedure that takes 3 numbers as args and returns the sum of the squares of the two larger numbers.
+
+#+BEGIN_SRC scheme :session :results output
+  (define (greater-sum-squares a b c)
+    (cond ((and (> a b) (> b c)) (sum-of-squares a b))
+          ((and (> a c) (> c b)) (sum-of-squares a c))
+          ((and (> b a) (> c a)) (sum-of-squares b c))))
+  (display (greater-sum-squares 1 2 3))
+#+END_SRC
+
+#+RESULTS:
+: 13
+
+Notice that operators can be compound expressions.
+
+#+BEGIN_SRC scheme :session :results output
+  (define (a-plus-abs-b a b)
+    ((if (> b 0) + -) a b))
+  (display (a-plus-abs-b 3 (- 5)))
+#+END_SRC
+
+#+RESULTS:
+: 8
+
+Applicative order in the below example will not terminate, where normal will output 0.
+
+(define (p) (p))
+
+(define (test x y)
+  (if (= x 0)
+      0
+      y))
+
+(test 0 (p))
+
+*** 1-1-7
+**** Readings
+
+A difference between math fxns and computer procedures is that computer procedures must be effective.
+In (classical) math, a description of sqrt(x) is sufficient, without telling how to compute
+
+Can use Newton's method to compute for example -- this uses successive approx's
+
+     |  Guess | Quotient            | Average                        |
+     |      1 | (2/1) = 2           | ((2 + 1)/2) = 1.5              |
+     |    1.5 | (2/1.5) = 1.3333    | ((1.3333 + 1.5)/2) = 1.4167    |
+     | 1.4167 | (2/1.4167) = 1.4118 | ((1.4167 + 1.4118)/2) = 1.4142 |
+     | 1.4142 | ...                 | ...                            |
+
+
+#+BEGIN_SRC scheme :session :results output
+  (define (average x y)
+    (/ (+ x y) 2))
+
+  (define (good-enough? guess x)
+    (< (abs (- x (square guess)))
+       0.001))
+
+  (define (improve guess x)
+    (let ((quot (/ x guess)))
+      (average guess quot)))
+
+  (define (sqrt-iter guess x)
+    (if (good-enough? guess x)
+        guess
+        (sqrt-iter (improve guess x) x)))
+
+  (define (sqrt' x) (sqrt-iter 1.0 x))
+  (display (sqrt' 2))
+#+END_SRC
+
+#+RESULTS:
+: 1.4142156862745097
+
+**** Exercises
+***** 1.6
+
+Why does if need to be its own special form?
+Try defining new-if in terms of cond.
+
+#+BEGIN_SRC scheme :session :results output
+  (define (new-if pred a b)
+    (cond (pred a)
+          (else b)))
+  (display (new-if (= 2 3) 0 5))
+#+END_SRC
+
+#+RESULTS:
+: 5
+
+Could we use new-if in the sqrt-iter function?
+No -- even though cond does not evaluate unnecessary predicates,
+ the applicative order will try to evaluate the next iteration step
+ before plugging into the new-if function
+
+***** 1.7
+
+The current good-enough? will not work well on large and small examples.
+
+#+BEGIN_SRC scheme :session
+  (display (square (sqrt' 10001)))
+  ;(display (square (sqrt' 0.0004)))
+#+END_SRC
+
+#+RESULTS:
+: #<unspecified>

@@ -1,0 +1,73 @@
+
+Circularity in logic is wrong, but circularity in programming is fine.
+Here is a non-terminating scheme program with exact self-reference.
+
+#+BEGIN_SRC scheme :exports code :results silent
+(define (f) (f))
+#+END_SRC
+
+The f function references the f function, and nothing else:
+#+BEGIN_SRC ditaa :file images/full-self-reference.png :cmdline -r
+   +---+
++->| f |--+
+|  +---+  |
++---------+
+#+END_SRC
+
+#+RESULTS:
+[[file:images/full-self-reference.png]]
+
+Recursive procedures that terminate can do so because the circularity is only partial.
+The factorial function, for example, calls factorial with a different argument --
+ factorial only seems circular when we abstract away its input.
+
+#+BEGIN_SRC scheme :session :exports code :results silent
+(define (fact' n accum)
+  (if (= n 0)
+      accum
+      (fact' (- n 1) (* n accum))))
+
+#+END_SRC
+
+#+BEGIN_SRC ditaa :file images/partial-self-reference.png :cmdline -r
+        +----------------------+
+        |fact'                 |
+        |       +----+         |
+  n---->|------>+    |         |
+accum-->|------>+ if +---\---->+->
+        |    +->+    |   |     |
+        |    |  +----+   |     |
+        |    +-----------+     |
+        +----------------------+
+#+END_SRC
+
+#+RESULTS:
+[[file:images/partial-self-reference.png]]
+
+Then we can abstract and cover up the self-reference as implementation details.
+I think this is analogous to finding a cycle motif and modding out by it.
+
+#+BEGIN_SRC scheme :session :exports code :results output
+(define (fact n)
+    (fact' n 1))
+
+(display (fact 4))
+#+END_SRC
+
+#+RESULTS:
+: 24
+
+
+#+BEGIN_SRC ditaa :file images/abstract-over-self-reference.png :cmdline -r
+        +----------------------+
+        |fact                  |
+        |      +-----------+   |
+  n---->|----->+           |   |
+        |      |fact'      +-->+--->
+        |1 *-->+           |   |
+        |      +-----------+   |
+        +----------------------+
+#+END_SRC
+
+#+RESULTS:
+[[file:images/abstract-over-self-reference.png]]

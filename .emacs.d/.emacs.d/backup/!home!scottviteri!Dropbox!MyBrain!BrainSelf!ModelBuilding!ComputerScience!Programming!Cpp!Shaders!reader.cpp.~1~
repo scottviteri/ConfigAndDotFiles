@@ -1,0 +1,18 @@
+unsigned long getFileLength(ifstream& file) {
+  if(!file.good()) return 0;
+  unsigned long pos = file.tellg();
+  file.seekg(0,ios::end);
+  unsigned long len = file.tellg();
+  file.seekg(ios::beg);
+  return len;
+}
+
+int loadshader(char* filename, GLchar** ShaderSource, unsigned long* len) {
+  ifstream file;
+  file.open(filename, ios::in); // opens as ASCII
+  if(!file) return -1;
+  len = getFileLength(file);
+  if (len==0) return -2; // Error: Empty File
+  *ShaderSource = (GLubyte*) new char[len+1];
+  if (*ShaderSource == 0) return -3; //can't reserve memory
+}

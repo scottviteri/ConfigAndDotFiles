@@ -1,0 +1,30 @@
+module Bob (responseFor) where
+
+responseFor :: String -> String
+responseFor [] = "Fine. Be that way!"
+responseFor xs 
+    | checkEmpty xs    = "Fine. Be that way!"
+    | checkShouting xs = "Whoa, chill out!" 
+    | checkQuestion xs = "Sure."
+    | otherwise        = "Whatever."  
+
+checkWhitespaceChar :: Char -> Bool
+checkWhitespaceChar c = elem c " \t\n\r"
+
+checkEmpty :: String -> Bool
+checkEmpty [] = True
+checkEmpty xs = all checkWhitespaceChar xs
+
+checkUpper :: Char -> Bool
+checkUpper a = elem a ['A'..'Z']
+checkAlpha :: Char -> Bool 
+checkAlpha a = elem a (['a'..'z']++['A'..'Z'])
+
+checkShouting :: String -> Bool
+checkShouting [] = False
+checkShouting xs = if alphaChars == [] then False else all checkUpper alphaChars
+ where alphaChars = filter checkAlpha xs
+
+checkQuestion :: String -> Bool
+checkQuestion [] = False
+checkQuestion xs = (head . reverse) (filter (not . checkWhitespaceChar) xs) == '?'

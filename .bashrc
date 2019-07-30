@@ -118,11 +118,25 @@ fi
 
 set -o vi
 
-#alias tb='docker run --rm -it -e "HOST_CW_DIR=${PWD}" -e "CALLING_HOST_NAME=$(hostname)" -e "CALLING_UID"=$UID -e "CALLING_OS"=$(uname) -v ${PWD}:/tb-module -v ${HOME}/.ssh:/root/.ssh -v /var/run/docker.sock:/var/run/docker.sock bitcraze/toolbelt'
-source /opt/ros/kinetic/setup.bash
+alias agi='sudo apt install'
+alias HDMI='xrandr --output HDMI-1 --auto --left-of eDP-1'
+alias VGA='xrandr --output VGA-1 --auto --right-of eDP-1'
+alias off='xrandr --output HDMI-1 --off && xrandr --output VGA-1 --off'
 
-source ~/racecar-ws/devel/setup.bash
-
-
-source ~/Dropbox/MIT/Year3/2ndSemester/6.141/run_car.sh
+#bindkey -v
+export DROPBOX="$HOME/Dropbox"
+export MIT="$DROPBOX/MyBrain/BodySelf/FormalEducation/MIT"
+export CLASSES="$MIT/Year4/Spring"
+export FINANCES="$DROPBOX/MyBrain/OutsideWorld/Finances/Finances"
+export DIARY="$DROPBOX/MyBrain/BrainSelf/Diary"
+export HEALTH="$DROPBOX/MyBrain/BodySelf/Health"
+export NUTRITION="$DROPBOX/MyBrain/BodySelf/Health/Nutrition"
+export SLEEP="$DROPBOX/MyBrain/BodySelf/Health/Sleep"
+export QUESTIONS="$DROPBOX/MyBrain/BrainSelf/Questions"
+export HABITS="$DROPBOX/MyBrain/BodySelf/Habits"
+export APPLICATIONS="$DROPBOX/MyBrain/BodySelf/Career/Applications"
+export TODO="$DROPBOX/MyBrain/BrainSelf/ToDo"
+export PROG="$DROPBOX/MyBrain/BodySelf/Programming"
+export NIMBLE="$APPLICATIONS/GapYearApplications/RoboticsApplications/Nimble"
+export NECSI="/home/scottviteri/Dropbox/MyBrain/BodySelf/Career/Employment/NECSI"
 

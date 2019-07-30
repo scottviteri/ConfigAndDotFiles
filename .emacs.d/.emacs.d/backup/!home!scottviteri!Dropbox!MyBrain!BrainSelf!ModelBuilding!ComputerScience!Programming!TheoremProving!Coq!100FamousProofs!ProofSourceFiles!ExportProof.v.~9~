@@ -1,0 +1,15 @@
+Add LoadPath "~/LocalSoftware/CoqASTSource/plugin/src/".
+(* Add LoadPath "./ProofSourceFiles". *)
+Require Import PrintAST.ASTPlugin.
+
+Require Import ev_4.
+PrintAST ev_4 with depth 1.
+PrintAST ev_4 with depth 2.
+
+Theorem obv : 1 + 1 = 2.
+  simpl. reflexivity.
+Qed.
+
+PrintAST obv with depth 1.
+PrintAST obv with depth 2.
+(* do not want to print Coq.Init.Nat.add *)

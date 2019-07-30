@@ -1,0 +1,9 @@
+Add LoadPath "~/LocalSoftware/CoqASTSource/plugin/src/".
+Require Import PrintAST.ASTPlugin.
+Require Import Reals.
+
+(* Print binomial. *)
+(* C, pascal_step1, pascal_step2, pascal_step3, pascal, binomial *)
+
+PrintAST sum_n_predN with depth 2.
+

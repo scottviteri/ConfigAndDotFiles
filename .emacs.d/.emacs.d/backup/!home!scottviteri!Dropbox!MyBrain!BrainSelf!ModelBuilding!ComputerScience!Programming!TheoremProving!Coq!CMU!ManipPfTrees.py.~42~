@@ -1,0 +1,1454 @@
+#+TITLE: Manipulate Proof Trees
+#+OPTIONS: tex:t
+#+STARTUP: latexpreview
+   #+LATEX_HEADER: \usepackage{qtree,tiks}
+
+
+* Manip Proof Trees
+
+Goal is to create a compression of proof trees by finding motifs and pulling them out as separate trees.
+
+First, grab some sample proof trees.
+
+#+BEGIN_SRC python :session
+s1 = '(Definition Top.ev_4 (App (Construct (Name ev) 2) (App (Construct (Name nat) 2) (App (Construct (Name nat) 2) (Construct (Name nat) 1))) (App (Construct (Name ev) 2) (Construct (Name nat) 1) (Construct (Name ev) 1))))'
+s2 = '(Definition Top.ev_8 (App (Construct (Name ev) 2) (App (Construct (Name nat) 2) (App (Construct (Name nat) 2) (App (Construct (Name nat) 2) (App (Construct (Name nat) 2) (App (Construct (Name nat) 2) (App (Construct (Name nat) 2) (Construct (Name nat) 1))))))) (App (Construct (Name ev) 2) (App (Construct (Name nat) 2) (App (Construct (Name nat) 2) (App (Construct (Name nat) 2) (App (Construct (Name nat) 2) (Construct (Name nat) 1))))) (App (Construct (Name ev) 2) (App (Construct (Name nat) 2) (App (Construct (Name nat) 2) (Construct (Name nat) 1))) (App (Construct (Name ev) 2) (Construct (Name nat) 1) (Construct (Name ev) 1))))))'
+#+END_SRC
+
+#+RESULTS:
+
+We will need to parse these into a form that python can more directly read.
+
+I am using a list of lists, where [A,B,[C,D]] represents
+ A
+ |\
+ B C
+   |
+   D
+
+#+BEGIN_SRC python :session :results output
+
+import math
+import copy
+import itertools
+import pickle
+import ast
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+
+def push(obj, l, depth):
+    while depth:
+        l = l[-1]
+        depth -= 1
+    l.append(obj)
+
+
+def stringToLists(s):
+    s = s[1:-1]
+    groups = []
+    depth = 0
+    try:
+        word = ''
+        for char in s:
+            if char == '(':
+                push([], groups, depth)
+                depth += 1
+            elif char == ')':
+                if word:
+                    push(word, groups, depth)
+                    word = ''
+                depth -= 1
+            elif char == ' ':
+                if word:
+                    push(word, groups, depth)
+                    word = ''
+            else:
+                word += char
+    except IndexError:
+        raise Exception('Parentheses mismatch')
+    if depth > 0:
+        raise Exception('Parentheses mismatch')
+    else:
+        return groups
+
+
+def focusToNewLetters(focus_string):
+    if focus_string[1] == '(': return '['
+    elif focus_string[1] == ')': return ']'
+    elif focus_string[1] == ' ': return ','
+    if focus_string[1].isalnum() \
+        and (focus_string[0] == '(' or focus_string[0] == ' ') \
+        and (focus_string[2] == ')' or focus_string[2] == ' '):
+        return '\"'+focus_string[1]+'\"'
+    if focus_string[1].isalnum() and (focus_string[0] == '(' or focus_string[0] == ' '):
+        return '\"'+focus_string[1]
+    if focus_string[1].isalnum() and (focus_string[2] == ')' or focus_string[2] == ' '):
+        return focus_string[1]+'\"'
+    return focus_string[1]
+
+
+def parse(filename):
+    accum = ''
+    focus = "   "
+    with open(filename,"r") as f:
+        while 1:
+            c = f.read(1)
+            if not c: break
+            focus = focus[1:] + c
+            accum += focusToNewLetters(focus)
+    return accum[1:]
+
+def getParseList(filename):
+    return ast.literal_eval(parse(filename))
+
+print(stringToLists('(a b (c d es))'))
+print()
+print(s1)
+print()
+
+l1 = stringToLists(s1)
+print(l1)
+l1_from_file = parse('../100FamousProofs/Proofs/ev_4.txt')
+print(l1_from_file)
+#+END_SRC
+
+
+#+RESULTS:
+: ['a', 'b', ['c', 'd', 'es']]
+:
+: (Definition Top.ev_4 (App (Construct (Name ev) 2) (App (Construct (Name nat) 2) (App (Construct (Name nat) 2) (Construct (Name nat) 1))) (App (Construct (Name ev) 2) (Construct (Name nat) 1) (Construct (Name ev) 1))))
+:
+: ['Definition', 'Top.ev_4', ['App', ['Construct', ['Name', 'ev'], '2'], ['App', ['Construct', ['Name', 'nat'], '2'], ['App', ['Construct', ['Name', 'nat'], '2'], ['Construct', ['Name', 'nat'], '1']]], ['App', ['Construct', ['Name', 'ev'], '2'], ['Construct', ['Name', 'nat'], '1'], ['Construct', ['Name', 'ev'], '1']]]]
+: ["Definition","Top.ev_4",["App",["Construct",["Name","ev"],"2"],["App",["Construct",["Name","nat"],"2"],["App",["Construct",["Name","nat"],"2"],["Construct",["Name","nat"],"1"]]],["App",["Construct",["Name","ev"],"2"],["Construct",["Name","nat"],"1"],["Construct",["Name","ev"],"1"]]]]
+
+Want to convert from nested list format to [(parent, name, id)] format.
+It will be convenient to have ids strictly decrease as we go down a tree,
+  and one way we can do this is by labeling the nodes in BFS order.
+
+In order to do this, we'll first need to build up some helper functions to deal with nested lists.
+
+#+BEGIN_SRC python :session :results output
+
+def memoize(f):
+    memo = {}
+    def helper(x):
+        immutable_x = pickle.dumps(x)
+        if immutable_x not in memo:
+            memo[immutable_x] = f(x)
+        return memo[immutable_x]
+    return helper
+
+def isFlat(l):
+    return not any(filter(lambda x: isinstance(x,list), l))
+
+def add1(l):
+    """ Adds 1 to each element in a nested numerical array
+    Example: add1([[1,2,3],4,5])
+    # base: [1,2,3] -> [2,3,4]
+    # ind_step: [[2,3,4],4,5] -> [[2,3,4],5,6]
+    """
+    if isFlat(l): # base case
+        return list(map(lambda x:x+1, l))
+    else: # inductive step
+        return list(map(lambda x: add1(x) if isinstance(x,list) else x+1, l))
+
+assert(add1([1,2,3]) == [2,3,4])
+assert(add1([[1,2,3],4,5]) == [[2,3,4],5,6])
+
+def nestedMap(f,l):
+    """ Map f over a nested list """
+    if isFlat(l):
+       return list(map(f,l))
+    else:
+       return list(map(lambda x: nestedMap(f,x) if isinstance(x,list) else f(x), l))
+
+assert(nestedMap(lambda x:x+1, [[1,2,3],4,5]) == [[2,3,4],5,6])
+
+def add1ToEndOfTuple(l):
+   """ Adds 1 to the first tuple element in a nested tuple array """
+   # [[(0,1),(0,2),(0,3)],(0,4),(0,5)] -> [[(1,1),(1,2),(1,3)],(1,4),(1,5)]
+   return nestedMap(lambda x: (*x[:-1], x[-1]+1), l)
+
+assert(add1ToEndOfTuple([[(1,0),(2,0),(3,0)],(4,0),(5,0)]) == [[(1,1),(2,1),(3,1)],(4,1),(5,1)])
+
+def nestedMapListFxn(f,l):
+   if isFlat(l): return f(l)
+   else: return f([f(x) if isinstance(x,list) else x for x in l])
+
+print(nestedMapListFxn(lambda l:l[::-1], [[1,2],3,[4,5]]))
+
+#+END_SRC
+
+#+RESULTS:
+: [[5, 4], 3, [2, 1]]
+
+labelDepth cannot be written in terms of nestedMap or nestedMapListFxn
+ b/c it has different behavior at the flat list and nested list levels
+
+#+BEGIN_SRC python :session :results output
+
+def labelDepth(l): # takes non-empty list of lists, where 1st element is not a list
+    """ Labels each element of nested list with tree depth
+    # labelDepth(['e','e','e']) -> [('e',0),('e',1),('e',1)]
+    # labelDepth(['e',['e','e','e'],'e']) -> [('e',0),[('e',1),('e',2),('e',2)],('e',2)]
+    """
+    h, t = l[0], l[1:] # b/c non-empty
+    if isFlat(l): # base case
+        # ['e','e','e'] -> [('e',0),('e',1),('e',1)]
+        return [(h,0)] + [(x,1) for x in t]
+    else: # inductive step
+        # [ 'e'   ,[('e',0),('e',1),('e',1)], 'e'   ] ->
+        # [('e',0),[('e',1),('e',2),('e',2)],('e',1)]
+        return [(h,0)] +  [add1ToEndOfTuple(labelDepth(x)) \
+                         if isinstance(x, list) else (x,1) for x in t]
+
+assert(labelDepth(['e','e','e']) == [('e',0),('e',1),('e',1)])
+assert(labelDepth(['e',['e','e','e'],'e']) == [('e',0),[('e',1),('e',2),('e',2)],('e',1)])
+
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC python :session :results output
+
+def indicatorFxn(prop, x): return 1 if prop(x) else 0
+
+def countProperty(prop, l):
+    # (lambda x:x==5) -> [5,[2,5],5] -> 3
+    if isFlat(l): return len(list(filter(prop,l)))
+    else:
+        return sum([countProperty(prop,x) if isinstance(x,list)
+                else indicatorFxn(prop,x) for x in l])
+
+assert(countProperty(lambda x:x==5, [5,2,5]) == 2)
+assert(countProperty(lambda x:x==5, [5,[2,5],5]) == 3)
+
+def accumulate(start,l,f):
+   total = start
+   for x in l:
+      total = f(total,x)
+      yield total
+
+def isEmpty(l): return not l
+
+def label(prop, l, prev_count=-1, withTuples=False): # [2,1,1] -> [2,(1,0),(1,1)]
+   if isEmpty(l): # base case : [] -> []
+       return l
+   else: # ind_step : (2 :: [1,1]) -> (2 :: [(1,0),(1,1)])
+       h,t=l[0],l[1:]
+       if prop(h):
+          transformed_head = [(*h, prev_count+1)] if withTuples else [(h, prev_count+1)]
+          prev_count += 1
+       else:
+          transformed_head = [h]
+       return transformed_head + label(prop, t, prev_count, withTuples=withTuples)
+
+assert(label(lambda x:x==1, []) == [])
+assert(label(lambda x:x==1, [2,1,1]) == [2,(1,0),(1,1)])
+
+def augWithCountProperty(prop,l,prev_count=-1,withTuples=False):
+    # (lambda x:x==1) -> [1,[2,1,1],1] -> [(1,0),[2,(1,1),(1,2)],(1,3)]
+    if isFlat(l): # base case
+       # [2,1,1] -> [2,(1,0),(1,1)]
+       return label(prop, l, prev_count, withTuples)
+    else: #ind_step
+       # [1,[2,(1,0),(1,1)],1] -> [(1,0),[2,(1,1),(1,2)],(1,3)]
+       outlst = []
+       for x in l:
+           if isinstance(x,list):
+               outlst.append(augWithCountProperty(prop,x,prev_count,withTuples))
+               prev_count += countProperty(prop, x)
+           else:
+               if prop(x):
+                   outlst.append((*x,prev_count+1) if withTuples else (x,prev_count+1))
+                   prev_count += 1
+               else:
+                   outlst.append(x)
+       return outlst
+
+assert(augWithCountProperty(lambda x:x==1, [2,1,1]) == [2,(1,0),(1,1)])
+
+assert(augWithCountProperty(lambda x:x==1, [ 1   ,[2, 1   , 1   ], 1   ])
+                                   == [(1,0),[2,(1,1),(1,2)],(1,3)])
+
+assert(augWithCountProperty(lambda x:x[0]==1,
+                            [(1,0),[(2,0),(1,0),(1,0)],(1,0)],
+                            withTuples=True)
+      == [(1,0,0),[(2,0),(1,0,1),(1,0,2)],(1,0,3)])
+
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC python :session :results output
+
+def nestedMax(l):
+   return nestedMapListFxn(lambda x: max(x), l)
+
+def nestedMaxDepth(l):
+   # [('e',0),[('e',1),('e',2),('e',2)],('e',2)] -> 2
+   if isFlat(l):
+       return max(l, key=lambda el: el[1])
+   else:
+       return max([nestedMaxDepth(x) if isinstance(x,list) else x for x in l], key=lambda el: el[1])
+
+def getDepth(l): return l[1]
+def getBFSCount(l): return l[2]
+
+def nestedMaxBFSCountWithDepth(l, depth):
+   return getBFSCount(
+         nestedMapListFxn(lambda x: max(filter(lambda y: getDepth(y)==depth, x),
+                          key=lambda el: getBFSCount(el)), l))
+
+assert(nestedMax([3,[1,4],2]) == 4)
+assert(getDepth(nestedMaxDepth([('e',0),[('e',1),('e',2),('e',2)],('e',1)])) == 2)
+assert(nestedMaxBFSCountWithDepth([('e',0),[('e',1,0),('e',2),('e',2)],('e',1,1)],1) == 1)
+
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC python :session :results output
+
+#cannot do by recursion on list level,
+# since counts have dependencies outside of their local list
+def numberBFS(l, start_id=0): # takes non-empty lists of tuple list, where 1st element is tuple
+    """ Labels each element of a nested list with BFS ordering
+    numberBFS(['e','e','e']) == [('e',0),('e',1),('e',2)]
+    numberBFS(['e',['e','e','e'],'e']) == [('e',0),[('e',1),('e',3),('e',4)],('e',2)]
+    """
+    aug_lst = labelDepth(copy.deepcopy(l))
+    prev_count = -1
+    for depth in range(getDepth(nestedMaxDepth(aug_lst))+1):
+        aug_lst = augWithCountProperty(prop=(lambda x: getDepth(x) == depth),
+                                       l=aug_lst,
+                                       prev_count=prev_count,
+                                       withTuples=True)
+        prev_count += countProperty(lambda x: depth==getDepth(x), aug_lst)
+
+    return nestedMap(lambda x:(x[0],x[2]+start_id), aug_lst)
+
+#def numberDictBFS(l, start_id=0):
+#    # numberBFS({'a':{'b':{},'c':{}}, 'd':{}}) = {('a',0):0}
+
+
+assert(numberBFS(['e','e','e']) == [('e',0),('e',1),('e',2)])
+assert(numberBFS(['e',['e','e','e'],'e']) == [('e',0),[('e',1),('e',3),('e',4)],('e',2)])
+
+aug_l1 = numberBFS(l1)
+print(aug_l1)
+print(numberBFS(l1, 3))
+
+#+END_SRC
+
+#+RESULTS:
+: [('Definition', 0), ('Top.ev_4', 1), [('App', 2), [('Construct', 3), [('Name', 6), ('ev', 13)], ('2', 7)], [('App', 4), [('Construct', 8), [('Name', 14), ('nat', 24)], ('2', 15)], [('App', 9), [('Construct', 16), [('Name', 25), ('nat', 32)], ('2', 26)], [('Construct', 17), [('Name', 27), ('nat', 33)], ('1', 28)]]], [('App', 5), [('Construct', 10), [('Name', 18), ('ev', 29)], ('2', 19)], [('Construct', 11), [('Name', 20), ('nat', 30)], ('1', 21)], [('Construct', 12), [('Name', 22), ('ev', 31)], ('1', 23)]]]]
+: [('Definition', 3), ('Top.ev_4', 4), [('App', 5), [('Construct', 6), [('Name', 9), ('ev', 16)], ('2', 10)], [('App', 7), [('Construct', 11), [('Name', 17), ('nat', 27)], ('2', 18)], [('App', 12), [('Construct', 19), [('Name', 28), ('nat', 35)], ('2', 29)], [('Construct', 20), [('Name', 30), ('nat', 36)], ('1', 31)]]], [('App', 8), [('Construct', 13), [('Name', 21), ('ev', 32)], ('2', 22)], [('Construct', 14), [('Name', 23), ('nat', 33)], ('1', 24)], [('Construct', 15), [('Name', 25), ('ev', 34)], ('1', 26)]]]]
+
+
+#+BEGIN_SRC python :session :results output
+
+def tupleTreeFromAugTree(l):
+    """ Takes BFS labeled nested list, outputs (parent, kind, id) form """
+    # [('e',0),[('e',1),('e',2)]] -> [(None,'e',0), (0,'e',1), (1,'e',2)]
+    #print(l)
+    if isFlat(l): #[('e',1),('e',2)] -> [(None,'e',1),(1,'e',2)]
+        h,t=l[0],l[1:]
+        return [(None,*h)] + [(h[1],*x) for x in t]
+    else: # [('e',0),[(None,'e',1),(1,'e',2)]] -> [(None,'e',0),(0,'e',1), (1,'e',2)]
+        outlst = [(None,*l[0])]
+        parent_id = l[0][1]
+        for x in l[1:]:
+            if isinstance(x,list):
+                tuples = tupleTreeFromAugTree(x)
+                h,t=tuples[0],tuples[1:]
+                outlst.append((parent_id,*h[1:]))
+                outlst.extend(t)
+            else:
+                outlst.append((parent_id, *x))
+        return outlst
+
+def tupleTreeFromList(lst, start_id=0):
+    return set(tupleTreeFromAugTree(numberBFS(lst, start_id)))
+
+def stringToTupleTree(s):
+    return tupleTreeFromList(stringToLists(s))
+
+assert(tupleTreeFromAugTree([('e',1),('e',2)]) == [(None,'e',1),(1,'e',2)])
+assert(tupleTreeFromAugTree([('e',0),[('e',1),('e',2)]]) == [(None,'e',0), (0,'e',1), (1,'e',2)])
+
+tt = set(tupleTreeFromAugTree(aug_l1))
+print(tt)
+print()
+
+print(l1)
+print(tupleTreeFromList(l1,3))
+
+#+END_SRC
+
+#+RESULTS:
+: {(5, 'Construct', 12), (11, 'Name', 20), (0, 'App', 2), (22, 'ev', 31), (4, 'App', 9), (5, 'Construct', 10), (None, 'Definition', 0), (5, 'Construct', 11), (12, 'Name', 22), (14, 'nat', 24), (6, 'ev', 13), (0, 'Top.ev_4', 1), (3, '2', 7), (10, '2', 19), (10, 'Name', 18), (3, 'Name', 6), (18, 'ev', 29), (17, '1', 28), (8, 'Name', 14), (2, 'App', 4), (2, 'Construct', 3), (2, 'App', 5), (27, 'nat', 33), (8, '2', 15), (25, 'nat', 32), (17, 'Name', 27), (4, 'Construct', 8), (9, 'Construct', 16), (9, 'Construct', 17), (11, '1', 21), (12, '1', 23), (16, '2', 26), (16, 'Name', 25), (20, 'nat', 30)}
+:
+: ['Definition', 'Top.ev_4', ['App', ['Construct', ['Name', 'ev'], '2'], ['App', ['Construct', ['Name', 'nat'], '2'], ['App', ['Construct', ['Name', 'nat'], '2'], ['Construct', ['Name', 'nat'], '1']]], ['App', ['Construct', ['Name', 'ev'], '2'], ['Construct', ['Name', 'nat'], '1'], ['Construct', ['Name', 'ev'], '1']]]]
+: {(12, 'Construct', 19), (7, 'App', 12), (20, '1', 31), (19, 'Name', 28), (19, '2', 29), (None, 'Definition', 3), (13, '2', 22), (23, 'nat', 33), (6, 'Name', 9), (7, 'Construct', 11), (11, 'Name', 17), (14, '1', 24), (5, 'App', 7), (14, 'Name', 23), (3, 'App', 5), (20, 'Name', 30), (5, 'Construct', 6), (8, 'Construct', 15), (15, 'Name', 25), (8, 'Construct', 14), (25, 'ev', 34), (12, 'Construct', 20), (8, 'Construct', 13), (3, 'Top.ev_4', 4), (21, 'ev', 32), (11, '2', 18), (9, 'ev', 16), (17, 'nat', 27), (30, 'nat', 36), (13, 'Name', 21), (5, 'App', 8), (28, 'nat', 35), (6, '2', 10), (15, '1', 26)}
+
+Now that we have the proofs in (parent, kind, id) format, let's build up some utilities.
+
+*Main Idea: the fundamental objects here are id's, and a tree is simply a particular way to relate id's*
+
+*Tree Utils*
+
+#+BEGIN_SRC python :session :results output
+
+def getNode(node_id, tree):
+    """the node with id 'node_id' in the context of tree """
+    return next(filter(lambda n : n[2] == node_id, tree))
+def getParent(node_id, tree):
+    """the parent of node with id 'node_id' in the context of tree """
+    return getNode(node_id, tree)[0]
+def getName(node_id, tree):
+    """the non-unique name of node with id 'node_id' in the context of tree """
+    return getNode(node_id, tree)[1]
+
+def getChildrenNodes(node_id, tree):
+    """Get children of node with id 'node_id' in the context of tree """
+    return set(filter(lambda n: n[0] == node_id, tree))
+
+def getChildrenIds(node_id, tree):
+    """Get  """
+    return set(map(lambda x:x[2], getChildrenNodes(node_id,tree)))
+
+def getNodeParent(node): return node[0]
+def getNodeName(node): return node[1]
+def getNodeId(node): return node[2]
+
+def getNodeIds(tree): return set(map(getNodeId, tree))
+def getNodeNames(tree): return set(map(getNodeName, tree))
+def getNodeParents(tree): return set(map(getNodeParent, tree))
+
+assert(getChildrenNodes(0,tt) == {(0, 'Top.ev_4', 1), (0, 'App', 2)})
+
+def isLeaf(node_id, tt):
+    """does the node with id 'node_id' in the context of tree 'tt'
+       have any children in the context of tree 'tt'
+    """
+    return not any(getChildrenNodes(node_id, tt))
+
+def getRootId(tree):
+    parent_ids = getNodeParents(tree)
+    if None in parent_ids: return list(filter(lambda x:x[0] is None, tree))[0][2]
+    return min(tree, key=lambda x:x[0])[2]
+
+def getRoot(tree):
+    root_id = getRootId(tree)
+    if root_id is None: return None
+    return getNode(root_id, tree)
+
+# should I have an assertion that all trees are connected?
+assert(getRoot({(0,'b',1), (1,'c',2)}) == (0,'b',1))
+assert(getRootId({(0,'c',2)}) == 2)
+assert(getRootId({(None,'a',0)}) == 0)
+
+
+def oneLevelFlatten(l): return itertools.chain.from_iterable(l)
+assert(list(oneLevelFlatten([[1,2],[3],[4,5]])) == [1,2,3,4,5])
+
+def getFullSubtreeStartingAt(node_id,tt):
+    return {getNode(node_id,tt)}.union(set(oneLevelFlatten(
+                                        map(lambda child_id: getFullSubtreeStartingAt(child_id,tt),
+                                            getChildrenIds(node_id,tt)))))
+assert(getFullSubtreeStartingAt(0, tt) == tt)
+
+
+def printTree(tree):
+    print()
+    def printTreeHelper(tree, parent_id, level):
+        children_ids = getChildrenIds(parent_id, tree)
+        for child_id in children_ids:
+            print("+---"*level + getNodeName(getNode(child_id,tree))
+                               + ' (' + str(child_id) + ')')
+            if not isLeaf(child_id, tree):
+                printTreeHelper(tree, child_id, level+1)
+    printTreeHelper(tree, getRoot(tree)[0], 0)
+
+
+printTree({(0, 'c', 2)})
+
+a_bc = {(None,'a',0),(0,'b',1),(1,'c',2)}
+printTree(a_bc)
+
+printTree(a_bc.union(set([(None,'d',3)]))) #add another to highest level of tree
+printTree(tt)
+
+
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+c (2)
+
+a (0)
++---b (1)
++---+---c (2)
+
+a (0)
++---b (1)
++---+---c (2)
+d (3)
+
+Definition (0)
++---Top.ev_4 (1)
++---App (2)
++---+---Construct (3)
++---+---+---Name (6)
++---+---+---+---ev (13)
++---+---+---2 (7)
++---+---App (4)
++---+---+---Construct (8)
++---+---+---+---Name (14)
++---+---+---+---+---nat (24)
++---+---+---+---2 (15)
++---+---+---App (9)
++---+---+---+---Construct (16)
++---+---+---+---+---Name (25)
++---+---+---+---+---+---nat (32)
++---+---+---+---+---2 (26)
++---+---+---+---Construct (17)
++---+---+---+---+---Name (27)
++---+---+---+---+---+---nat (33)
++---+---+---+---+---1 (28)
++---+---App (5)
++---+---+---Construct (10)
++---+---+---+---Name (18)
++---+---+---+---+---ev (29)
++---+---+---+---2 (19)
++---+---+---Construct (11)
++---+---+---+---Name (20)
++---+---+---+---+---nat (30)
++---+---+---+---1 (21)
++---+---+---Construct (12)
++---+---+---+---Name (22)
++---+---+---+---+---ev (31)
++---+---+---+---1 (23)
+#+end_example
+
+*Tree Definitions*
+
+#+BEGIN_SRC python :session :results output
+
+a_b = {(None,'a',0),(0,'b',1)}
+b_c = {(None,'b',0), (0,'c',1)}
+a_bc = {(None,'a',0),(0,'b',1),(1,'c',2)}
+a_bc_mod = {(None,'a',5),(5,'b',10),(10,'c',15)}
+a_b_b = {(None,'a',0),(0,'b',1),(0,'b',2)}
+a_b_ab = {(None,'a',0),(0,'b',1),(0,'a',2),(2,'b',3)}
+a_ab_ab = {(None,'a',0),(0,'a',1),(1,'b',2),(0,'a',3),(3,'b',4)}
+a_chain = set([(None,'a',0)]+[(i,'a',i+1) for i in range(7)]+[(7,'b',8)])
+
+#+END_SRC
+
+#+RESULTS:
+
+*More Tree Utils*
+
+#+BEGIN_SRC python :session :results output
+
+def renumber(tree):
+    rt = getRoot(tree)
+    out_tree = set()
+    d = {getNodeId(rt): 0}
+    out_tree.add((None, getNodeName(rt),0))
+    frontier = list(getChildrenNodes(getNodeId(rt), tree))
+    count = 1
+    while frontier:
+        ch = frontier.pop(0)
+        if not isLeaf(getNodeId(ch), tree):
+            children = list(getChildrenNodes(getNodeId(ch), tree))
+            frontier.extend(children)
+        out_tree.add((d[getNodeParent(ch)], getNodeName(ch), count))
+        d[getNodeId(ch)] = count
+        count += 1
+    return out_tree
+
+spaced_out_tree = {(5,'a',7),(7,'b',14),(7,'b',16)}
+#printTree(spaced_out_tree)
+#printTree(renumber(spaced_out_tree))
+assert(renumber(spaced_out_tree) == a_b_b)
+
+printTree(renumber(a_bc_mod))
+assert(a_bc == renumber(a_bc_mod))
+
+
+def shiftTree(tree, new_root_name, offset):
+    def maybe_inc(x):
+        if x is None: return offset
+        return x + offset + 1
+    return {(None, new_root_name, offset)}.union(
+            set(map(lambda n: (maybe_inc(n[0]), n[1], maybe_inc(n[2])), tree)))
+
+#printTree(shiftTree(a_b_b, 'rt', 3))
+assert(shiftTree(a_b_b, 'rt', 3) ==
+        {(4, 'b', 6), (None, 'rt', 3), (3, 'a', 4), (4, 'b', 5)})
+
+def appendTree(base_tree, parent_id, append_tree):
+    max_base = max(map(lambda n: getNodeId(n), base_tree))
+    def maybe_inc(x):
+        if x is None: return parent_id
+        return x + max_base + 1
+    #printTree(renumber(append_tree))
+    mod_append_tree = set(map(lambda n: (maybe_inc(n[0]), n[1], maybe_inc(n[2])), renumber(append_tree)))
+    #printTree(mod_append_tree)
+    return base_tree.union(mod_append_tree)
+
+#printTree(appendTree({(None,'rt',0)}, 0, a_b))
+assert(appendTree({(None,'rt',0)}, 0, a_b) ==
+                    {(None, 'rt', 0), (0, 'a', 1), (1, 'b', 2)})
+#printTree(appendTree(a_b,0,a_b))
+assert(appendTree(a_b,0,a_b) ==
+        {(None, 'a', 0), (0, 'b', 1), (2, 'b', 3), (0, 'a', 2)})
+
+#printTree(appendTree({(None,'rt', 0)}, 0, a_bc))
+assert(appendTree({(None,'rt', 0)}, 0, a_bc) ==
+        {(None,'rt',0),(0,'a',1),(1,'b',2),(2,'c',3)})
+
+#printTree(appendTree({(None,'rt',0)}, None, a_b))
+assert(appendTree({(None,'rt',0)}, None, a_b) ==
+            {(None, 'rt', 0), (None, 'a', 1), (1, 'b', 2)})
+
+def mergeTreesAtRt(t1, rt_name, t2):
+    return appendTree(appendTree({(None, rt_name, 0)}, 0, t1), 0, t2)
+
+#printTree(mergeTreesAtRt(a_b, 'rt', a_b))
+assert(mergeTreesAtRt(a_b,'a',a_b) == a_ab_ab)
+
+a_b_1 = {(None,'a',0),(0,'b',1)}
+a_b_2 = {(0,'a',2),(2,'b',3)}
+assert(mergeTreesAtRt(a_b_1, 'genName_0', a_b_ab) ==
+        mergeTreesAtRt(a_b_2, 'genName_0', a_b_ab))
+
+#+END_SRC
+
+#+RESULTS:
+: a (0)
+: +---b (1)
+: +---+---c (2)
+
+*More Tree Definitions*
+
+#+BEGIN_SRC python :session :results output
+
+a_ab_ab = {(None,'a',0),(0,'a',1),(1,'b',2),(0,'a',3),(3,'b',4)}
+a_b_c = {(None,'a',0),(0,'b',1),(0,'c',2)}
+
+a_bc_bc = mergeTreesAtRt(b_c,'a',b_c)
+
+a_a_b = {(None,'a',0),(0,'a',1),(1,'b',2)}
+a_deep = {(None,'a',0),(0,'a',1),(1,'b',2),(1,'a',3),(3,'b',4)}
+partial_ctt2 = {(43, 'genName_0', 44), (37, 'App', 38), (2, 'genName_1', 5), (40, 'genName_1', 41), (None, 'genName_1', 37), (44, 'nat', 45), (5, 'genName_3', 11), (17, '1', 28), (None, 'genName_2', 40), (None, 'Definition', 0), (9, 'genName_3', 17), (2, 'ev', 13), (0, 'genName_2', 2), (5, 'ev', 31), (38, 'genName_0', 39), (41, '2', 42), (None, 'genName_3', 43), (34, 'Construct', 35), (None, 'genName_0', 34), (5, '1', 23), (2, 'genName_3', 4), (35, 'Name', 36), (0, 'Top.ev_4', 1), (10, 'ev', 29), (4, 'genName_3', 9), (11, '1', 21), (5, 'genName_2', 10)}
+pattern_ctt2 = {(5, 'genName_3', 11), (2, 'genName_1', 5)}
+
+#+END_SRC
+
+#+RESULTS:
+
+
+
+#+BEGIN_SRC python :session :results output
+
+#def getAllCombinations(lst):
+#    return list(itertools.chain.from_iterable(
+#         (itertools.combinations(lst,r=i) for i in range(1,len(lst)+1))))
+
+def getAllCombinations(lst, growing_room):
+    return list(itertools.chain.from_iterable(
+         (itertools.combinations(lst,r=i) for i in range(1,growing_room+1))))
+
+def checkEqualityModuloOrder(l1, l2):
+    return all([x in l2 for x in l1]) and all([x in l1 for x in l2])
+
+
+#def genAllNextSubtrees(subtree, tree, expanded_node_before=set([])):
+#   assert(subtree.issubset(tree))
+#   frontier_nodes = filter(lambda node : not(getChildrenNodes(node[2],tree).issubset(subtree)),
+#                           subtree - expanded_node_before)
+#   allChildren = list(itertools.chain.from_iterable(
+#                        map(lambda n: getChildrenNodes(n[2],tree), frontier_nodes)))
+#   return [subtree.union(set(comb)) for comb in getAllCombinations(allChildren)]
+
+def genAllNextSubtrees(subtree, tree, max_size):
+   assert(subtree.issubset(tree))
+   growing_room = max_size - len(subtree)
+   frontier_nodes = filter(lambda node : not(getChildrenNodes(node[2],tree).issubset(subtree)),
+                           subtree)
+   allChildren = list(itertools.chain.from_iterable(
+                        map(lambda n: getChildrenNodes(n[2],tree), frontier_nodes)))
+   return [subtree.union(set(comb)) for comb in getAllCombinations(allChildren, growing_room)]
+
+
+#print(a_bc)
+#print(genAllNextSubtrees({(None,'a',0)}, a_bc))
+
+#a_b_c = {(None,'a',0),(0,'b',1),(0,'c',2)}
+#print(genAllNextSubtrees({(None,'a',0)}, a_b_c))
+
+assert(checkEqualityModuloOrder(
+        genAllNextSubtrees({(None, 'Definition', 0)}, tt, max_size=3),
+        [
+#         {(None, 'Definition', 0)},
+         {(None, 'Definition', 0), (0, 'Top.ev_4', 1)},
+         {(None, 'Definition', 0), (0, 'App', 2)},
+         {(None, 'Definition', 0), (0, 'Top.ev_4', 1), (0, 'App', 2)}
+        ]
+       )
+)
+
+
+#def genAllSubtrees(tree, max_depth):
+#    """Get all subtrees of a given maximum depth
+#    Examples:
+#        genAllSubtrees({(None, 'a', 0), (0,'b',1), (0,'c',2)}, 1)
+#        -> [{(None, 'a', 0)}, {(0, 'b', 1)}, {(0, 'c', 2)}]
+#    """
+#    def genAllSubtreesHelper(max_depth, expanded_node_before):
+#       if max_depth == 1:
+#            # base: {(None, 'a', 0), (0,'b',1), (0,'c',2)}
+#            #       -> [{(None, 'a', 0)}, {(0,'b',1)}, {(0,'c',2)}]
+#            return [set([node]) for node in tree]
+#       else: # ind_step
+#            all_subtrees = []
+#            for subtree in genAllSubtreesHelper(max_depth-1, expanded_node_before):
+#                next_subtrees = genAllNextSubtrees(subtree, tree, expanded_node_before)
+#                print(subtree, expanded_node_before, next_subtrees)
+#                all_subtrees.extend(next_subtrees)
+#                expanded_node_before = expanded_node_before.union(subtree)
+#            return all_subtrees
+#    return genAllSubtreesHelper(max_depth, set([]))
+
+def genAllSubtrees(tree, max_size=None):
+    if max_size is None:
+        max_size = len(tree)
+    depth_count = 1
+    all_subtrees = [{node} for node in tree]
+    frontier = all_subtrees[::1]
+    while frontier:
+        subtree = frontier.pop(0)
+        if len(subtree) < max_size:
+            for subt in genAllNextSubtrees(subtree, tree, max_size):
+                if subt not in all_subtrees:
+                    all_subtrees.append(subt)
+                    frontier.append(subt)
+    return all_subtrees
+
+
+
+
+#for sub in genAllSubtrees(a_bc, 2):
+#    printTree(sub)
+#for sub in genAllSubtrees(a_bc, 3):
+#    printTree(sub)
+
+#for sub in genAllSubtrees(a_bc_bc,3):
+#    printTree(sub)
+#for sub in genAllSubtrees(a_bc_bc, 4):
+#    printTree(sub)
+
+
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC python :session :results output
+
+assert(checkEqualityModuloOrder(
+        genAllSubtrees(a_bc,1),
+        [{(None, 'a', 0)}, {(0, 'b', 1)}, {(1, 'c', 2)}]
+       )
+)
+
+
+assert(checkEqualityModuloOrder(
+        genAllSubtrees(a_bc,2),
+        [
+            {(None, 'a', 0)},
+            {(None, 'a', 0), (0, 'b', 1)},
+            {(0, 'b', 1), (1, 'c', 2)},
+            {(0, 'b', 1)},
+            {(1, 'c', 2)}
+        ]
+      )
+)
+
+assert(checkEqualityModuloOrder(
+        genAllSubtrees(a_bc, 3),
+        [
+            {(1, 'c', 2)},
+            {(None, 'a', 0)},
+            {(0, 'b', 1)},
+            {(None, 'a', 0), (0, 'b', 1)},
+            {(1, 'c', 2), (0, 'b', 1)},
+            {(1, 'c', 2), (None, 'a', 0), (0, 'b', 1)}
+        ]
+      )
+)
+
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC python :session :results output
+
+def getNodeFromName(tree, name):
+    return list(filter(lambda x: getNodeName(x)==name, tree))[0]
+
+def isMatchTrees(t1,t2):
+    return renumber(t1) == renumber(t2)
+
+#def isMatchTrees(t1, t2):
+#    r1, r2 = getRoot(t1), getRoot(t2)
+#    result = isMatchTreesHelper(r1,r2,t1,t2)
+#    if result:
+#        print(1)
+#        printTree(t1)
+#        print("matches")
+#        printTree(t2)
+#    return result
+
+#def getSubtreeFromRt(rt, tree):
+#    return set([rt]).union(set([]j))
+
+#def isMatchTreesHelper(r1,r2,t1,t2):
+#    if getNodeName(r1) != getNodeName(r2): return False
+#    if (isLeaf(getNodeId(r1),t1)):
+#        if not isLeaf(getNodeId(r2),t2): return False
+#        return True
+#    ch1, ch2 = getChildrenNodes(getNodeId(r1),t1), getChildrenNodes(getNodeId(r2),t2)
+#    ch1_names = set(map(getNodeName, ch1))
+#    if (not ch1_names == set(map(getNodeName, ch2))): return False
+#    return all([isMatchTreesHelper(getNodeFromName(ch1,name), getNodeFromName(ch2,name), t1, t2)
+#             for name in ch1_names])
+
+assert(isMatchTrees({(None,'genName_1',5),(5,'genName_3',11)},
+                    {(1,'genName_2',3),(3,'genName_3',4)}) == False)
+
+
+assert(isMatchTrees({(None,'a',0),(0,'b',1),(1,'c',2)},
+                   {(None,'a',1),(1,'b',2),(2,'c',3)}))
+
+assert(not(isMatchTrees({(None,'a',0),(0,'b',1),(1,'c',2)},
+                       {(None,'a',1),(1,'b',2),(2,'d',3)})))
+
+assert(not(isMatchTrees({(None,'a',0),(0,'b',1),(1,'c',2)},
+                       {(None,'a',0),(1,'b',2),(2,'c',3),(3,'d',4)})))
+
+
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC python :session :results output
+
+def hasOverlap(tree1, tree2):
+    return any(tree1.intersection(tree2))
+
+def countOverlaps(tree, trees):
+    return len(list(filter(lambda t : hasOverlap(tree, t),
+                       trees)))
+
+def sliceOut(i, lst): return lst[:i] + lst[i+1:]
+
+assert(sliceOut(2,[1,2,3,4]) == [1,2,4])
+
+
+# def getMaxDisjointTrees(trees):
+#    """ find a maximally sized collection of non-overlapping trees
+#    [{(None, 'a', 0)},
+#     {(None, 'a', 0), (0, 'c', 2)},
+#     {(None, 'a', 0), (0, 'b', 1)},
+#     {(None, 'a', 0), (0, 'c', 2), (0, 'b', 1)}]
+#    ->
+#    [{(None, 'a', 0)}, {(0, 'c', 2)}, {(0, 'b', 1)}]
+#    """
+#
+#    overlap_dict = {x[0]: countOverlaps(x[1],
+#                               sliceOut(x[0], trees))
+#                    for x in enumerate(trees)}
+#    max_overlap_index = max(overlap_dict.keys(),
+#                            key=lambda i: overlap_dict[i])
+#    if overlap_dict[max_overlap_index] == 0:
+#        return trees
+#    return getMaxDisjointTrees(sliceOut(max_overlap_index,
+#                                    trees))
+
+def checkPairwiseDisjoint(t1,t2):
+    return not set(map(getNodeId, t1)).intersection(set(map(getNodeId, t2)))
+
+def checkDisjoint(trees):
+    return all((checkPairwiseDisjoint(*p) for p in itertools.combinations(trees,r=2)))
+
+def getMaxDisjointTrees(trees):
+    for num_trees in range(len(trees),0,-1):
+        indices = itertools.combinations(range(len(trees)),r=num_trees)
+        for inds in indices:
+            if checkDisjoint((trees[i] for i in inds)):
+                return [trees[i] for i in inds]
+
+assert(checkEqualityModuloOrder(
+            getMaxDisjointTrees(list(filter(lambda x:len(x)==2,
+                genAllSubtrees(a_chain-set([(7,'b',8)]), 2)))),
+            [{(6, 'a', 7), (5, 'a', 6)},
+             {(None, 'a', 0), (0, 'a', 1)},
+             {(3, 'a', 4), (4, 'a', 5)},
+             {(2, 'a', 3), (1, 'a', 2)}])
+)
+
+print("Maximum spanning collection")
+for t in getMaxDisjointTrees(genAllSubtrees(a_b_c, 2)): printTree(t)
+print()
+
+def getDisjointMatches(pattern_tree, subtrees):
+    def isMatch(subtree): return isMatchTrees(pattern_tree, subtree)
+    subtree_candidates = list(filter(lambda subt: len(subt) == len(pattern_tree), subtrees))
+    subtree_matches = list(filter(isMatch, subtree_candidates))
+    return getMaxDisjointTrees(subtree_matches)
+
+assert(checkEqualityModuloOrder(
+        getDisjointMatches({(None,'a',0),(0,'a',1)}, genAllSubtrees(a_chain,2)),
+        [{(6, 'a', 7), (5, 'a', 6)},
+         {(None, 'a', 0), (0, 'a', 1)},
+         {(3, 'a', 4), (4, 'a', 5)},
+         {(2, 'a', 3), (1, 'a', 2)}])
+)
+
+def getNumMatches(pattern_tree, subtrees):
+    return len(getDisjointMatches(pattern_tree, subtrees))
+
+assert(getNumMatches(a_a_b, genAllSubtrees(a_deep,3)) == 1)
+
+assert(getNumMatches(pattern_ctt2, genAllSubtrees(partial_ctt2,2)) == 1)
+
+assert(getNumMatches({(None,'b',0),(0,'c',1)}, genAllSubtrees(a_bc_bc)) == 2)
+assert(getNumMatches({(None,'a',0),(0,'b',1)}, genAllSubtrees(a_ab_ab)) == 2)
+assert(getNumMatches({(None,'a',0),(0,'b',1)}, genAllSubtrees(a_b_b)) == 1)
+
+#+END_SRC
+
+#+RESULTS:
+: Maximum spanning collection
+:
+: b (1)
+:
+: a (0)
+:
+: c (2)
+
+#+BEGIN_SRC python :session :results output
+
+def isMotifTrees(pattern_tree, subtrees):
+    return getNumMatches(pattern_tree, subtrees) >= 2
+
+# [a, b] should NOT be a motif of [a, b, b]
+assert(not isMotifTrees(a_b, genAllSubtrees(a_b_b, 2)))
+
+# [a, b] SHOULD be a motif of [a, [a,b], [a,b]]
+assert(isMotifTrees(a_b, genAllSubtrees(a_ab_ab,2)))
+
+# [a, b] SHOULD be a motif of [a, b, [a, b]]
+assert(isMotifTrees(a_b, genAllSubtrees(a_b_ab,2)))
+
+
+def generateMotifs(tree, max_size):
+    subtrees = list(genAllSubtrees(tree, max_size)) #make sure this is not generated many times
+    potential_motifs = [] # collection of subtrees of a length with different structure
+    for s in filter(lambda t: len(t)>1, subtrees): #non-trivial subtree
+        # make potential motifs unique up to pattern structure
+        if not any([isMatchTrees(s,t) for t in filter(lambda m: len(m)==len(s), potential_motifs)]):
+            potential_motifs.append(s)
+    motifs_and_num_matches = list(map(lambda pattern: (pattern, getNumMatches(pattern, subtrees)),
+                                    potential_motifs))
+    motifs_with_multiple_matches_and_num_matches =  list(filter(lambda p: p[1] >= 2, motifs_and_num_matches))
+    return list(motifs_with_multiple_matches_and_num_matches)
+
+assert(generateMotifs(a_b_b, 2) == [])
+
+motif_ab, num_matches_ab = generateMotifs(a_ab_ab, 2)[0]
+assert(isMatchTrees(motif_ab, a_b))
+assert(num_matches_ab == 2)
+
+
+m_ab, num_m_ab = generateMotifs(a_b_ab, 2)[0]
+assert(isMatchTrees(m_ab, a_b))
+assert(isMatchTrees(generateMotifs(a_b_ab, 2)[0][0],
+                    generateMotifs(a_ab_ab, 2)[0][0]))
+
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC python :session :results output
+
+def calculateTreeSavings(motif_tree, num_matches):
+    return len(motif_tree)*num_matches - num_matches - (len(motif_tree) + 1)
+
+import random
+
+# consider only exposing tree savings (motif, savings)
+def pickMotifTreeForSubstitution(motif_trees_and_num_matches):
+    motif_trees_and_num_matches = list(motif_trees_and_num_matches)
+    best_motif, num_matches = max(motif_trees_and_num_matches, key=lambda m: calculateTreeSavings(*m))
+    if calculateTreeSavings(best_motif, num_matches) < 0:
+        return None
+    best_savings = calculateTreeSavings(best_motif, num_matches)
+    best_motifs = list(filter(lambda m: calculateTreeSavings(*m) == best_savings, motif_trees_and_num_matches))
+    best_motif = random.choice(best_motifs)[0]
+    return best_motif
+
+# could do based off on amt of compression
+# could do with indegree - outdegree
+
+def removeKeys(keys, d):
+    return {k:d[k] for k in d if k not in keys}
+
+def convertShallowToNestedDict(pattern): #potentially disconnected pattern
+    all_values = set().union(*pattern.values())
+    top_level_keys = set(filter(lambda k: k not in all_values, pattern.keys()))
+    nested_d = {}
+    for k in top_level_keys:
+        if not pattern[k]:
+            nested_d[k] = {}
+        else:
+            nested_d[k] = convertShallowToNestedDict(removeKeys(top_level_keys, pattern))
+    return nested_d
+
+assert(convertShallowToNestedDict({'a': {'b'}, 'b': {}}) == {'a': {'b': {}}})
+assert(convertShallowToNestedDict({'a': {'b', 'c'}, 'b':{'d'}, 'c':{}, 'd':{}})
+                                   == {'a': {'b':{'d':{}}, 'c':{}}})
+
+
+def convertDictToNestedListHelper(nested_dict): #takes single nested dict
+    """ Examples:
+    {'a': {'b':{}}} -> ['a','b']
+    {'b':{'c':{}, 'd':{}}} -> ['b','c','d']
+    {'a': {'b':{'c':{}, 'd':{}}, 'e':{}}} -> ['a', ['b', 'c' 'd'], 'e']
+    """
+    assert(len(nested_dict.keys()) == 1)
+    root_key = next(iter(nested_dict.keys()))
+    child_dict = nested_dict[root_key]
+    if not any(child_dict.values()):
+        # Base Case: {'b':{'c':{}, 'd':{}}} -> ['b','c','d']
+        return [root_key] + list(child_dict.keys())
+    else: # Ind Case: {'a': {'b':['b', 'c', 'd'], 'e':{}} -> ['a' ['b' 'c' 'd'] 'e']
+        outlst = [root_key]
+        for child in child_dict.keys():
+            if not child_dict[child]:
+                outlst.append(child)
+            else:
+                outlst.append(convertDictToNestedListHelper({child: child_dict[child]}))
+        return outlst
+
+assert(convertDictToNestedListHelper({'a': {'b':{}}}) == ['a','b'])
+bcd = convertDictToNestedListHelper({'b':{'c':{}, 'd':{}}})
+assert(bcd == ['b','c','d'] or bcd == ['b','d','c'])
+abcde = convertDictToNestedListHelper({'a': {'b':{'c':{}, 'd':{}}, 'e':{}}})
+assert(abcde == ['a',['b','c','d'],'e'] or abcde == ['a','e',['b','c','d']] or
+        abcde == ['a',['b','d','c'],'e'] or abcde == ['a','e', ['b','d','c']])
+
+def convertPatternToNestedList(pattern): # takes in rooted tree
+    nested_dict = convertShallowToNestedDict(pattern)
+    return convertDictToNestedListHelper(nested_dict)
+
+
+assert(convertPatternToNestedList({'a': {'b'}, 'b': {}}) == ['a', 'b'])
+abcd = convertPatternToNestedList({'a': {'b', 'd'}, 'b':{'c'}, 'c':{}, 'd':{}})
+assert(abcd == ['a', ['b', 'c'], 'd'] or abcd == ['a','d',['b','c']])
+
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC python :session :results output
+
+def genNewName(previous_name=''):
+    prefix = "genName_"
+    if not previous_name: return prefix + "0"
+    rest_of_string = previous_name[len(prefix):]
+    return prefix + str(int(rest_of_string)+1)
+
+assert(genNewName() == "genName_0")
+assert(genNewName(genNewName()) == "genName_1")
+
+a_b_c = {(None,'a',0),(0,'b',1),(0,'c',2)}
+
+print("Full Tree")
+printTree(a_b_c)
+print()
+
+print("Subtrees")
+for t in genAllSubtrees(a_b_c, 2): printTree(t)
+print()
+
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+Full Tree
+
+a (0)
++---b (1)
++---c (2)
+
+Subtrees
+
+b (1)
+
+a (0)
+
+c (2)
+
+a (0)
++---b (1)
+
+a (0)
++---c (2)
+#+end_example
+
+#+BEGIN_SRC python :session :results output
+
+def substTreeAndFix(subst_tree, orig_tree, substitution_name="genName_0"):
+    """ substitute part of a tree, using specific id's as opposed to id pattern """
+    subst_rt = getRoot(subst_tree)
+    assert(subst_rt is not None)
+
+    subst_rt_parent, subst_rt_name, subst_rt_id = subst_rt
+    orig_rt = getNode(subst_rt_id, orig_tree)
+    orig_rt_parent, orig_rt_name, orig_rt_id = orig_rt
+
+    assert(all([subt in orig_tree for subt in subst_tree if subt != subst_rt])
+            and getName(subst_rt_id, orig_tree) == subst_rt_name)
+
+    new_tree = copy.copy(orig_tree)
+
+    # mod out matched tree
+    new_tree = new_tree - subst_tree
+    new_tree = new_tree - set([getNode(subst_rt_id, orig_tree)])
+
+    # fix broken children of subst_tree
+    nodes_with_parents_in_substitution = set(filter(lambda n: n[0] in getNodeIds(subst_tree), new_tree))
+    new_tree = new_tree - nodes_with_parents_in_substitution
+    new_tree = new_tree.union(set(map(lambda n:(subst_rt_id,*n[1:]), nodes_with_parents_in_substitution)))
+
+    # fix root pointer
+    new_tree = new_tree.union(set([(orig_rt_parent, substitution_name, subst_rt_id)]))
+
+    return new_tree
+
+
+#a_b_b does not have a non-trivial motif because only one unique match root
+assert(substTreeAndFix({(None,'a',0), (0,'b',2)}, a_b_b)
+        == {(0,'b',1),(None,'genName_0',0)})
+
+best = [{(6, 'a', 7), (5, 'a', 6)},
+        {(None, 'a', 0), (0, 'a', 1)},
+        {(3, 'a', 4), (4, 'a', 5)},
+        {(2, 'a', 3), (1, 'a', 2)}]
+
+assert(renumber(substTreeAndFix(best[3],
+         substTreeAndFix(best[2],
+           substTreeAndFix(best[1], substTreeAndFix(best[0], a_chain)))))
+    == {(None,'genName_0',0),(0,'genName_0',1),(1,'genName_0',2),(2,'genName_0',3),(3,'b',4)})
+
+assert(substTreeAndFix({(0,'a',1),(1,'a',2)}, {(None,'b',0),(0,'a',1),(1,'a',2),(2,'b',3)})
+        == {(None,'b',0), (0,'genName_0',1), (1,'b',3)})
+
+a_4 = {(None,'a',0),(0,'a',1),(1,'a',2),(2,'a',3)}
+sub_a4 = substTreeAndFix({(None,'a',0),(0,'a',1)}, a_4)
+sub2_a4 = substTreeAndFix({(1,'a',2),(2,'a',3)}, sub_a4)
+assert(sub2_a4 == {(None,'genName_0',0),(0,'genName_0',2)})
+
+print("Full Tree: ")
+printTree(a_b_b)
+print()
+
+print("Substitution Tree: ")
+a_b = {(None,'a',0), (0,'b',2)}
+printTree(a_b)
+print()
+
+print("Full Tree / Substitution: ")
+printTree(substTreeAndFix(a_b, a_b_b))
+print()
+
+assert(substTreeAndFix(a_b, a_b_b) == {(None,'genName_0',0), (0,'b',1)})
+
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+Full Tree:
+
+a (0)
++---b (1)
++---b (2)
+
+Substitution Tree:
+
+a (0)
++---b (2)
+
+Full Tree / Substitution:
+
+genName_0 (0)
++---b (1)
+#+end_example
+
+#+BEGIN_SRC python :session :results output
+
+#uses merge motif tree
+def substituteMotifTree(motif_tree, tree, max_subtree_size, subst_name='genName_0'):
+    all_subtrees = genAllSubtrees(tree, max_subtree_size)
+    best_motif_matches = getDisjointMatches(motif_tree, all_subtrees)
+    new_tree = copy.copy(tree)
+
+    for subst_tree in best_motif_matches:
+        new_tree = substTreeAndFix(subst_tree, new_tree, subst_name)
+
+    tagged_motif_tree = appendTree({(None, subst_name, 0)}, 0, motif_tree)
+    return appendTree(new_tree, None, tagged_motif_tree)
+
+#printTree(a_bc_bc)
+assert(substituteMotifTree(b_c, a_bc_bc, 2) ==
+    {(None, 'a', 0), (0, 'genName_0', 1), (4, 'b', 5), (5, 'c', 6),
+     (None, 'genName_0', 4), (0, 'genName_0', 3)}
+)
+
+#printTree(substituteMotifTree(a_b_1, a_b_ab, 2))
+#printTree(substituteMotifTree(a_b_2, a_b_ab, 2))
+assert(substituteMotifTree(a_b_1, a_b_ab, 2)
+        == {(None, 'genName_0', 3), (4, 'b', 5), (None, 'genName_0', 0),
+                (0, 'genName_0', 2), (3, 'a', 4)})
+assert(substituteMotifTree(a_b_1, a_b_ab, 2)
+        == substituteMotifTree(a_b_2, a_b_ab, 2))
+
+
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC python :session :results output
+
+#trying to minimize total num nodes
+
+def compressTreeWithMotifTrees(tree, max_subtree_size, subst_name='genName_0'):
+    motif_trees_and_num_matches = generateMotifs(tree, max_subtree_size)
+    if not motif_trees_and_num_matches: # no non-trivial subtree copied in tree
+        return tree
+    motif_tree = pickMotifTreeForSubstitution(motif_trees_and_num_matches)
+    if motif_tree is None: # all motif trees increase size of overall tree
+        return tree
+    #print('motif', motif_tree)
+    compressed_tree = substituteMotifTree(motif_tree, tree, max_subtree_size, subst_name)
+    #printTree(compressed_tree)
+    #print(len(compressed_tree))
+    assert(len(compressed_tree) <= len(tree))
+    next_subst_name = genNewName(subst_name)
+    return compressTreeWithMotifTrees(compressed_tree, max_subtree_size, next_subst_name)
+
+
+#printTree(compressTreeWithMotifTrees(a_b_ab, max_subtree_size=2))
+assert(compressTreeWithMotifTrees(a_b_ab, max_subtree_size=2) == a_b_ab)
+
+#printTree(compressTreeWithMotifTrees(a_bc_bc, max_subtree_size=2))
+assert(compressTreeWithMotifTrees(a_bc_bc, max_subtree_size=2) == a_bc_bc)
+
+
+twice_a_bc = mergeTreesAtRt(a_bc, 'rt', a_bc)
+
+#printTree(twice_a_bc)
+#printTree(compressTreeWithMotifTrees(twice_a_bc, max_subtree_size=2))
+assert(compressTreeWithMotifTrees(twice_a_bc, max_subtree_size=2)== twice_a_bc)
+
+#printTree(compressTreeWithMotifTrees(twice_a_bc, max_subtree_size=3))
+assert(compressTreeWithMotifTrees(twice_a_bc, max_subtree_size=3)
+        == appendTree({(None,'genName_0',5)},5,a_bc).union(
+                {(None,'rt',0),(0, 'genName_0', 1), (0, 'genName_0', 4)}))
+
+
+twice_a_bc_bc = mergeTreesAtRt(a_bc_bc,'rt',a_bc_bc)
+
+print([len(twice_a_bc_bc)] +
+        [len(compressTreeWithMotifTrees(twice_a_bc_bc, max_subtree_size=n))
+            for n in range(2,7)])
+# printTree(compressTreeWithMotifTrees(twice_a_bc_bc, max_subtree_size=5))
+assert(compressTreeWithMotifTrees(twice_a_bc_bc, max_subtree_size=5) ==
+        compressTreeWithMotifTrees(twice_a_bc_bc, max_subtree_size=6))
+
+#+END_SRC
+
+#+RESULTS:
+: [11, 10, 10, 10, 9, 9]
+
+Next we want to try on ev_4,8, and other theorems
+
+Show how much compression happens
+
+#+BEGIN_SRC python :session
+
+printTree(tt)
+
+ctt4 = compressTreeWithMotifTrees(tt, max_subtree_size=4)
+printTree(ctt4)
+
+#print([len(tt)] +
+#        [len(compressTreeWithMotifTrees(tt, max_subtree_size=n))
+#            for n in range(2,5)])
+
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC python :session
+
+even_8 = stringToTupleTree(s2)
+
+printTree(even_8)
+
+#print([len(even_8)] +
+#        [len(compressTreeWithMotifTrees(even_8, max_subtree_size=n))
+#            for n in range(2,5)])
+#
+#a = compressTreeWithMotifTrees(even_8, max_subtree_size=4) # this is largest reasonable rn
+#printTree(a)
+
+#+END_SRC
+
+#+RESULTS:
+
+ToDo
+ Explore compressions of larger trees
+  Need to make more efficient to do so
+   Use python profiler to find problematic parts
+ Consider all different arbitrary decisions
+  write all down
+
+
+#+BEGIN_SRC python :session
+
+def countDepths(tree):
+    rt = getRoot(tree)
+    depth = 0
+    d = {0:1}
+    next_level = []
+    current_level = [rt]
+    while current_level:
+        current_node = current_level.pop(0)
+        ch = getChildrenNodes(getNodeId(current_node), tree)
+        next_level.extend(ch)
+        if not current_level:
+            depth += 1
+            d[depth] = len(next_level)
+            current_level = next_level
+            next_level = []
+    return d
+
+def strip(s): return s[s.rindex('/')+1:]
+
+#+END_SRC
+
+#+RESULTS:
+
+#+BEGIN_SRC python :session :results file
+  fig = plt.figure(figsize=(3,2))
+  filename = '../100FamousProofs/Proofs/ev_4.txt'
+  image_name = strip(filename)[:-4]+'.png'
+  tree = tupleTreeFromList(getParseList(filename))
+  depths = countDepths(tree)
+  plt.plot([depths[k] for k in range(max(depths.keys())+1)])
+  fig.tight_layout()
+  plt.savefig('images/'+image_name)
+  'images/'+image_name
+#+end_src
+
+#+RESULTS:
+[[file:images/ev_4.png]]
+
+#+BEGIN_SRC python :session :results file
+  fig = plt.figure(figsize=(3,2))
+  filename = '../100FamousProofs/Proofs/ev_8.txt'
+  image_name = strip(filename)[:-4]+'.png'
+  tree = tupleTreeFromList(getParseList(filename))
+  depths = countDepths(tree)
+  plt.plot([depths[k] for k in range(max(depths.keys())+1)])
+  fig.tight_layout()
+  plt.savefig('images/'+image_name)
+  'images/'+image_name
+#+end_src
+
+#+RESULTS:
+[[file:images/ev_8.png]]
+
+#+BEGIN_SRC python :session :results file
+  fig = plt.figure(figsize=(3,2))
+  filename = '../100FamousProofs/Proofs/sqrt2_not_rational.txt'
+  image_name = strip(filename)[:-4]+'.png'
+  tree = tupleTreeFromList(getParseList(filename))
+  depths = countDepths(tree)
+  plt.plot([depths[k] for k in range(max(depths.keys())+1)])
+  fig.tight_layout()
+  plt.savefig('images/'+image_name)
+  'images/'+image_name
+#+end_src
+
+#+RESULTS:
+[[file:images/sqrt2_not_rational.png]]
+
+#+BEGIN_SRC python :session
+
+def countDepths2(tree):
+    rt = getRoot(tree)
+    depth = 0
+    d = [1]
+    next_level = []
+    current_level = [rt]
+    while current_level:
+        current_node = current_level.pop(0)
+        ch = getChildrenNodes(getNodeId(current_node), tree)
+        next_level.extend(ch)
+        if not current_level:
+            depth += 1
+            d.append(len(next_level))
+            current_level = next_level
+            next_level = []
+    return d
+
+import pyparsing as pp
+
+filename = '../100FamousProofs/Proofs/bday_paradox.txt'
+image_name = strip(filename)[:-4]+'.png'
+
+string_lst = parse(filename)
+nested_braces = pp.nestedExpr('[', ']')
+lst = nested_braces.parseString(string_lst).asList()
+
+
+#tree = list(tupleTreeFromList(getParseList(filename)))
+#depths = countDepths2(tree)
+#printTree(tree)
+
+#+END_SRC
+
+#+RESULTS:
+
+##+BEGIN_SRC python :session :results file
+#  fig = plt.figure(figsize=(3,2))
+#  filename = '../100FamousProofs/Proofs/bday_paradox.txt'
+#  image_name = strip(filename)[:-4]+'.png'
+#  tree = list(tupleTreeFromList(getParseList(filename)))
+#  depths = countDepths(tree)
+#  plt.plot([depths[k] for k in range(max(depths.keys())+1)])
+#  fig.tight_layout()
+#  plt.savefig('images/'+image_name)
+#  'images/'+image_name
+##+end_src
+#
+##+RESULTS:
+#[[file:images/bday_paradox.png]]

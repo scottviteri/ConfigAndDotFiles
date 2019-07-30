@@ -1,0 +1,16 @@
+/home/scottviteri/LocalSoftware/CoqASTSource/plugin/src/ast_plugin.ml4
+/home/scottviteri/LocalSoftware/CoqASTSource/plugin/src/#ast_plugin.ml4#
+/home/scottviteri/LocalSoftware/coq/printing/printmod.ml
+/home/scottviteri/LocalSoftware/coq/printing/#printmod.ml#
+/home/scottviteri/LocalSoftware/coq/printing/printer.ml
+/home/scottviteri/LocalSoftware/coq/printing/#printer.ml#
+/home/scottviteri/LocalSoftware/coq/printing/genprint.ml
+/home/scottviteri/LocalSoftware/coq/printing/#genprint.ml#
+/home/scottviteri/LocalSoftware/coq/printing/ppconstr.ml
+/home/scottviteri/LocalSoftware/coq/printing/#ppconstr.ml#
+/home/scottviteri/LocalSoftware/coq/printing/pputils.ml
+/home/scottviteri/LocalSoftware/coq/printing/#pputils.ml#
+/home/scottviteri/LocalSoftware/coq/printing/ppvernac.ml
+/home/scottviteri/LocalSoftware/coq/printing/#ppvernac.ml#
+/home/scottviteri/LocalSoftware/coq/printing/prettyp.ml
+/home/scottviteri/LocalSoftware/coq/printing/#prettyp.ml#

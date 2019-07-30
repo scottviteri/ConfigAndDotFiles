@@ -1,0 +1,10 @@
+module Isogram (isIsogram) where
+
+import qualified Data.List as L (nub)
+import           Data.List ((\\))
+import qualified Data.Char as C (isLetter, toLower)
+
+isIsogram :: String -> Bool
+isIsogram str = null $ loweredStripped \\ L.nub loweredStripped
+  where
+    loweredStripped = C.toLower <$> filter C.isLetter str

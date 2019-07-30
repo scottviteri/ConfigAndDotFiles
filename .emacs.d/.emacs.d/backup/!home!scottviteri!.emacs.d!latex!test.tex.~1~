@@ -1,0 +1,9 @@
+\documentclass[12pt]{article}
+\begin{document}
+\noindent
+This is regular text. An equation should be really big:
+\[
+    2x^2 + y^{2^2} = 1
+\]
+The text continues.
+\end{document}

@@ -1,0 +1,20 @@
+
+* Scott Viteri
+
+** Thing 1
+
+#+BEGIN_SRC emacs-lisp
+  (defun org-xor (a b)
+    "Exclusive or."
+    (if a (not b) b))
+ #+END_SRC
+
+** Thing 2
+
++ 1 2 3C emacs-lisp
+ (defun org-xor (a b)
+   "Exclusive or."
+   (if a (not b) b))
+#+END_SRC
+
+** Thing 2

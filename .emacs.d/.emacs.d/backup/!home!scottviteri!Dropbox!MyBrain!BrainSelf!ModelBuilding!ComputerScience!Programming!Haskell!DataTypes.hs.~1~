@@ -1,0 +1,2 @@
+
+data FightMove = Punch | Kick | Block

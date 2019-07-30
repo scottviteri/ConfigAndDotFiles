@@ -1,0 +1,5 @@
+def fdsa ():
+   return 1 and 1
+
+def sd():
+    2 * fdsa()

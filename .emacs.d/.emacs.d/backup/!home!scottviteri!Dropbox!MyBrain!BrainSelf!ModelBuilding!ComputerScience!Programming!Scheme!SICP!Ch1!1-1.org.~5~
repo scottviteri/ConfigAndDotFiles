@@ -1,0 +1,39 @@
+* SICP Notes
+
+** Chapter 1
+*** 1-1-1
+
+Basic Scheme shell interactions
+
+#+BEGIN_SRC scheme :session :results output
+  (use-modules (srfi srfi-1))
+  (display (+ 134 325))
+  (newline)
+  (display (- 100 23))
+#+END_SRC
+
+#+RESULTS:
+: 459
+: 77
+
+*** 1-1-2
+
+Definition
+
+#+BEGIN_SRC scheme :session :results output
+  (define size 2)
+  (display (* 4 size))
+#+END_SRC
+
+#+RESULTS:
+: 8
+
+*** 1-1-3
+
+Procedures can be composite
+Want to get smartparen mode working for scheme
+#+BEGIN_SRC scheme :session :results output
+
+  (define (sum-integers a b)
+  )
+#+END_SRC

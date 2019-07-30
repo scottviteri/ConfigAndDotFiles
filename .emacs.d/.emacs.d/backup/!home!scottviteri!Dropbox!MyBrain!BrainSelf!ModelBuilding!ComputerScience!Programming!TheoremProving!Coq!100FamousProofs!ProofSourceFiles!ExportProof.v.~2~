@@ -1,0 +1,6 @@
+Add LoadPath "~/LocalSoftware/CoqASTSource/plugin/src/".
+Add LoadPath "./ProofSourceFiles".
+Require Import PrintAST.ASTPlugin.
+
+Require Import ev_4.
+PrintAST ev_4 with depth 1.

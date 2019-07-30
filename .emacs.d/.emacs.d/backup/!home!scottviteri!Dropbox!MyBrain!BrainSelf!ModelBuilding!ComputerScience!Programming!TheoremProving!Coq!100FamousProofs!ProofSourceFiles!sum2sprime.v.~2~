@@ -1,0 +1,2 @@
+Add LoadPath "~/LocalSoftware/sum-of-two-square".
+Require Import SumOfTwoSquare.

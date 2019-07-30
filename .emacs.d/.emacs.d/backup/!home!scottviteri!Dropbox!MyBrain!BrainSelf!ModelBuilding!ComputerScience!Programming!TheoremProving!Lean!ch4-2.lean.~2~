@@ -1,0 +1,133 @@
+-- Tactics -- begin instructions end
+-- intro, split (and in assumptions), cases (and elim), apply
+
+theorem test (p q : Prop) (hp : p) (hq : q) : p ∧ q ∧ p :=
+begin
+  apply and.intro,
+  exact hp,
+  apply and.intro,
+  exact hq,
+  exact hp
+end
+
+#print test
+
+theorem test' (p q : Prop) (hp : p) (hq : q) : p ∧ q ∧ p :=
+begin
+  apply and.intro hp;
+  exact and.intro hq hp
+end
+
+theorem test'' (p q : Prop) (hp : p) (hq : q) : p ∧ q ∧ p :=
+by exact and.intro hp (and.intro hq hp)
+
+
+variables p q r : Prop
+example : p ∧ q → q ∧ p :=
+begin
+  intro h,
+  cases h with h1 h2,
+  split,
+  apply h2,
+  apply h1
+end
+
+example : p ∨ q → q ∨ p :=
+begin
+  intro h,
+  cases h with h1 h2,
+  right, assumption,
+  left, assumption
+end
+
+-- example (p q r : Prop) : p \
+
+example (h1 : p ∨ q) (h2 : ¬p) : q :=
+begin
+  cases h1 with hp hq,
+  contradiction,
+  assumption
+end
+
+--example (p q r : Prop) : p ∧ (q ∨ r) ↔ (p ∧ q) ∨ (p ∧ r) :=
+--begin
+--end
+
+-- 1 --
+
+example (h : ¬(p ∧ q)) : p → ¬q :=
+begin
+  intros hp hq,
+  have hpq : p ∧ q := and.intro hp hq,
+  contradiction
+end
+
+-- 2 --
+
+example (h : (p → r) ∧ (q → ¬r)) : ¬(p ∧ q) :=
+begin
+  intros hpq,
+  cases h with h1 h2,
+  cases hpq with hp hq,
+  have hr : r := h1 hp,
+  have hnr : ¬r := h2 hq,
+  contradiction
+end
+
+example (h : (p → r) ∧ (q → ¬r)) : ¬(p ∧ q) :=
+begin
+  assume hpq : p ∧ q,
+  have hpr : p → r, from h.left,
+  have hqnr : q → ¬r, from h.right,
+  have hp : p, from hpq.left,
+  have hr : r, from hpr hp,
+  have hq : q, from hpq.right,
+  have hnr : ¬r, from hqnr hq,
+  contradiction
+end
+
+
+-- 3 --
+example (hnpq : ¬ (p ∨ q)) : ¬p ∧ ¬q :=
+begin
+  split,
+  {
+  intro hp,
+  have hpq : p ∨ q := or.inl hp,
+  contradiction,
+  },
+  {
+  intro hq,
+  have hpq : p ∨ q := or.inr hq,
+  contradiction,
+  }
+end
+
+-- 4 --
+example (hnpnq : ¬p ∧ ¬q) : ¬(p ∨ q) :=
+begin
+  intros hpq,
+  cases hnpnq with hnp hnq,
+  apply or.elim hpq hnp hnq
+end
+
+-- 5 --
+local attribute [instance] classical.prop_decidable
+example (hnpq : ¬(p ∧ q)) : ¬p ∨ ¬q :=
+begin
+  by_cases hp : p,
+  {
+    by_cases hq : q,
+    {
+      have hpq : p ∧ q := ⟨hp, hq⟩,
+      contradiction
+    },
+    {
+      have hnq : ¬p ∨ ¬q := or.inr hq,
+      assumption,
+    }
+  },
+  {
+  apply or.inl hp,
+  }
+end

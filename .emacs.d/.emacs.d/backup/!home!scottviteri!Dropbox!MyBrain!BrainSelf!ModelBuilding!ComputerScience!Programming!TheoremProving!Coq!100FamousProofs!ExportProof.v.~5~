@@ -1,0 +1,19 @@
+Add LoadPath "~/LocalSoftware/CoqASTBinary/plugin/src/".
+Require Import PrintAST.ASTPlugin.
+Require Import sqrt2.
+
+Print sqrt2_not_rational.
+
+(*
+(Definition presentation.ev_4
+            (App (Construct (Name ev) 2)
+                 (App (Construct (Name nat) 2)
+                      (App (Construct (Name nat) 2)
+                           (Construct (Name nat) 1)))
+                 0 depth reached: (Axiom presentation.ev_2
+                                         (App (Name ev)
+                                              (App (Construct (Name nat) 2)
+                                                   (App (Construct (Name nat) 2)
+                                                        (Construct (Name nat) 1)))))))
+
+*)

@@ -1,0 +1,6 @@
+Add LoadPath "~/LocalSoftware/CoqASTSource/plugin/src/".
+Add LoadPath "./ProofSourceFiles".
+Require Import PrintAST.ASTPlugin.
+
+Require Import even_4_tree.
+PrintAST even_4_tree with depth 9.

@@ -1,0 +1,20 @@
+(load-extension "libfive-guile" "scm_init_libfive_modules")
+; cannot load-extension when run as a file -- loadpath must be different
+(use-modules (libfive kernel) (libfive vec) (libfive csg) (libfive shapes))
+
+ 
+(define (expt-irrat b n)  
+  (exp (* n (log b))))
+  
+(define (compose f g)
+  (lambda (x) (f (g x))))  
+  
+(define (lp-norm p)
+  (lambda-shape (x y z)
+    (let ((p-pow (lambda (x) (expt-irrat x p))))
+    (- (expt-irrat (apply + (map (compose p-pow abs) (list x y z))) 
+                   (/ 1 p)) 
+       1))))
+  
+(shape->mesh (lp-norm 1) "test.stl" 10 '((-2 . 2) (-2 . 2) (-2 . 2)))
+(quit)

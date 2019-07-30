@@ -1,0 +1,28 @@
+Add LoadPath "~/LocalSoftware/CoqASTSource/plugin/src/".
+Add LoadPath "./".
+Require Import PrintAST.ASTPlugin.
+
+
+Fixpoint fact (n: nat) : nat :=
+  match n with
+  | 0 => 1
+  | S n' => n * (fact n')
+  end.
+
+Compute (fact 4).
+
+Parameters A B C : Set.
+Definition curry (f : A * B -> C) := fun a => fun b => f (a, b).
+Definition uncurry (g : A -> B -> C) := fun p => g (fst p) (snd p).
+
+Theorem forward : forall f a b, uncurry (curry f) (a,b) = f (a,b).
+Proof.
+  intros.
+  unfold curry, uncurry.
+  simpl.
+  reflexivity.
+Qed.
+
+
+PrintAST curry.
+PrintAST uncurry.

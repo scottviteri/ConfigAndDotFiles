@@ -1,0 +1,10 @@
+Check (fun x : nat => x). (* : nat -> nat *)
+Check (fun x : True => x). (* : True -> True *)
+
+(* Treats implication as functions,
+   where input is proposition being assumed
+   and output is proposition being deduced *)
+
+Check I.
+
+Check (fun _ : False => I).

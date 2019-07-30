@@ -1,0 +1,6 @@
+{-# LANGUAGE GADTs #-}
+
+module STy where
+
+square :: Integral a => a -> a
+square x = x * x

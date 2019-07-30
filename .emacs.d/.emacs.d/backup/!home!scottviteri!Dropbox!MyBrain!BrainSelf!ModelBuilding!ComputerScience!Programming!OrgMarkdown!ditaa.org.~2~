@@ -1,0 +1,10 @@
+
+#+BEGIN_SRC ditaa :file images/full-self-reference.png :cmdline -r
+   +----+
++->| p  |--+
+|  +----+  |
++----------+
+#+END_SRC
+
+#+RESULTS:
+[[file:images/full-self-reference.png]]

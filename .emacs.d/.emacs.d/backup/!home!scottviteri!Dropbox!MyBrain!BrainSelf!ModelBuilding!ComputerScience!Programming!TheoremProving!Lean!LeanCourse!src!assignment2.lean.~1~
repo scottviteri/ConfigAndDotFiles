@@ -1,0 +1,164 @@
+/-
+Replace the sorries by proofs. Do as many as you can.
+
+(Use the methods descibed in Chapter 2. Soon we will discuss another style of proof
+using "tactics," but for now, you should write proofs as expressions.)
+-/
+open classical
+variables p q r s : Prop
+
+/-
+Note: the line "open classical" above means that you can use the shorter name for
+"by_contradiction".
+-/
+
+example (h₁ : ¬p → q) (h₂ : ¬q) : p :=
+by_contradiction
+  (assume  h₃ : ¬p,
+    have h₄ : q, from h₁ h₃,
+    show false, from h₂ h₄)
+
+-- You can also use the law of the excluded middle.
+
+example : p ∨ ¬p := em p
+
+-- We did not discuss the ↔ connective in class, but you can read
+-- about it in TPIL.
+
+/-
+These are standard identities.
+-/
+
+example : (p → q) → (¬q → ¬p) :=
+  assume hpq : p → q,
+  assume hnq : ¬q,
+  assume hp : p,
+  have hq : q, from hpq hp,
+  show false, from (hnq hq)
+
+
+example : p ∨ (q ∧ r) → (p ∨ q) ∧ (p ∨ r) :=
+  assume (hpqr : p ∨ (q ∧ r)),
+  or.elim hpqr
+   (assume hp : p,
+    show (p ∨ q) ∧ (p ∨ r), from ⟨or.inl hp, or.inl hp⟩)
+   (assume hpq : q ∧ r,
+    show (p ∨ q) ∧ (p ∨ r), from ⟨or.inr hpq.left, or.inr hpq.right⟩)
+
+example : ¬(p ∧ ¬p) :=
+  assume h : p ∧ ¬p,
+  have hp : p, from h.left,
+  have hnp : ¬p, from h.right,
+  show false, from (hnp hp)
+
+example : (p → (q → r)) → (p ∧ q → r) :=
+  assume (hpqr : p → (q → r)),
+  assume (hpq : p ∧ q),
+  show r, from hpqr hpq.left hpq.right
+
+example : p ∧ ¬q → ¬(p → q) :=
+  assume (h1 : p ∧ ¬q),
+  assume (h2 : p → q),
+  have hq : q, from h2 h1.left,
+  show false, from (h1.right hq)
+
+example : (¬p ∨ q) → (p → q) :=
+  assume (h : ¬p ∨ q),
+  assume hp : p,
+  show q, from or.elim h (λ hnp : ¬p, absurd hp hnp) (λ hq, hq)
+
+example : (p ∨ q → r) → (p → r) ∧ (q → r) :=
+  assume (hpqr : p ∨ q → r),
+  and.intro
+  (show p → r, from assume hp : p, hpqr (or.inl hp))
+  (show q → r, from assume hq : q, hpqr (or.inr hq))
+
+
+/-
+These require classical logic, which makes them tricky. You can use
+`by_contradiction` or `em`.
+-/
+
+example : (p → q) → (¬p ∨ q) :=
+  assume hpq : p → q,
+  or.elim (em p)
+  (show p → ¬p ∨ q, from assume hp : p, or.inr (hpq hp))
+  (show ¬p → ¬p ∨ q, from assume hnp : ¬p, or.inl hnp)
+
+example : (¬q → ¬p) → (p → q) :=
+  assume h : ¬q → ¬p,
+  assume hp : p,
+  show q, from
+    (by_contradiction
+      (assume hnq : ¬q,
+       have hnp : ¬p, from h hnq,
+       hnp hp))
+
+
+/-
+This one is tricky! Give it a shot.
+-/
+
+example : ¬(p ↔ ¬p) :=
+  assume h : p ↔ ¬p,
+  show false, from
+    iff.elim
+    (show (p → ¬p) → (¬ p → p) → false, from
+      (assume hforward : p → ¬p,
+       assume hback : ¬p → p,
+       or.elim (em p)
+         (show p → false, from assume hp : p, ((hforward hp) hp))
+         (show ¬p → false, from assume hnp : ¬p, hnp (hback hnp))))
+    h
+
+
+/-
+These are only required of grad students. (But anyone is welcome to try!)
+The last two require classical logic. It helps to use the law of the excluded
+middle. If you *really* want a challenge, use only proof by contradiction.
+-/
+
+example : ¬(p ∨ q) → ¬p ∧ ¬q :=
+  assume h : ¬(p ∨ q),
+  and.intro
+  (show ¬p, from
+    assume hp : p,
+    have hpq : p ∨ q, from or.inl hp,
+    h hpq)
+  (show ¬q, from
+    assume hq : q,
+    have hpq : p ∨ q, from or.inr hq,
+    h hpq)
+
+example : ((p → q) → p) → p :=
+  assume hpqp : (p → q) → p,
+  or.elim (em p)
+  (show p → p, from assume hp : p, hp)
+  (show ¬p → p, from
+    assume hnp : ¬p,
+    have hpq : p → q, from (assume hp : p, absurd hp hnp),
+    hpqp hpq)
+
+example : (p → r ∨ s) → ((p → r) ∨ (p → s)) :=
+  assume h : p → r ∨ s,
+  show (p → r) ∨ (p → s), from
+  or.elim (em p)
+  (show p → (p → r) ∨ (p → s), from
+    assume hp : p, have hrs : r ∨ s, from h hp,
+    or.elim hrs
+      (show r → (p → r) ∨ (p → s), from
+        assume hr : r,
+        have hpr : p → r, from λ k, hr, or.inl hpr)
+      (show s → (p → r) ∨ (p → s), from
+        assume hs : s,
+        have hps : p → s, from λ k, hs, or.inr hps))
+  (show ¬p → (p → r) ∨ (p → s), from
+    assume hnp : ¬p,
+    have hpr : p → r, from assume hp : p, absurd hp hnp,
+    or.inl hpr)
+
+/-
+For an added (optional!) challenge, try proving `em` using `by_contradiction`
+(and the other rules discussed in Chapter 2, which are intuitionistically valid),
+and vice-versa.
+-/

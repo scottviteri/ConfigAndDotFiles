@@ -1,0 +1,3 @@
+#+BEGIN_SRC gnuplot :output
+plot(sin(x))
+#+END_SRC
