@@ -1,0 +1,26 @@
+cd $PROJ
+ls
+cp $NIX/python3.nix ./
+cp $NIX/python3.nix ./
+mv python3.nix  shell.nix
+find-file shell.nix 
+ls
+find-file ~/.zshrc
+source ~/.zshrc
+cd $PROJ
+ls
+nix-shell shell.nix 
+cd $PROJ
+ls
+nix-shell shell.nix 
+ls
+find-file shell.nix 
+nix-shell shell.nix 
+cd $PROJ
+ls
+nix-shell shell.nix 
+coqtop
+ls
+find-file ManipPfTrees.org 
+find-file shell.nix 
+find-file ManipPfTrees.org 

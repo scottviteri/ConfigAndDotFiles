@@ -1,0 +1,16 @@
+;; Emacs-W3 HTTP cookies file
+;; Automatically generated file!!! DO NOT EDIT!!!
+
+(setq url-cookie-storage
+ '((".matthewbauer.us"
+  [url-cookie "__cfduid" "d20b4fbe17dc82793af825b5c35c84cb61564529283" "Wed, 29-Jul-20 23:28:03 GMT" "/" ".matthewbauer.us" nil])
+ (".ostechnix.com"
+  [url-cookie "__cfduid" "df224ddd9b9aa985aca4bde2a193e6a2c1564528976" "Wed, 29-Jul-20 23:22:56 GMT" "/" ".ostechnix.com" nil]))
+)
+(setq url-cookie-secure-storage
+ 'nil)
+
+;; Local Variables:
+;; version-control: never
+;; no-byte-compile: t
+;; End:

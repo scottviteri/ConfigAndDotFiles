@@ -137,7 +137,7 @@
          'org-babel-load-languages
          '(
            (C . t)
-           (sh . t)
+           (shell . t)
            (python . t)
            (scheme . t)
            (perl . t)
