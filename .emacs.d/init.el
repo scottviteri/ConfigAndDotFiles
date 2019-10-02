@@ -47,6 +47,12 @@
     :pin melpa-unstable
 )
 
+(add-to-list 'load-path "~/LocalSoftware/lean-3.4.2-linux")
+(use-package lean-mode
+  :ensure t
+  :init (define-key evil-normal-state-map "\M-." nil))
+(require 'company-lean)
+(require 'helm-lean)
 ;; Python
 
 (global-prettify-symbols-mode 1)
@@ -137,7 +143,7 @@
          'org-babel-load-languages
          '(
            (C . t)
-           (shell . t)
+           (sh . t)
            (python . t)
            (scheme . t)
            (perl . t)
@@ -230,9 +236,11 @@
 (add-to-list 'load-path "/home/scottviteri/.emacs.d/evil-collection/")
 ;;(with-eval-after-load 'mu4e (require 'evil-collection-mu4e) (evil-collection-mu4e-setup))
 ;(add-hook 'mu4e (prog1 (require 'evil-collection-mu4e) (evil-collection-mu4e-setup)))
-
 (require 'evil-collection)
 (evil-collection-init)
+
+
+(add-to-list 'load-path "/home/scottviteri/.emacs.d/agda-mode/")
 
 (use-package org-mime
     :ensure t
@@ -323,6 +331,9 @@
   (add-hook 'tuareg-mode-hook 'merlin-mode t)
   (add-hook 'caml-mode-hook 'merlin-mode t)))
 
+(load-file (let ((coding-system-for-read 'utf-8))
+                (shell-command-to-string "agda-mode locate")))
+
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
@@ -330,18 +341,22 @@
  ;; If there is more than one, they won't work right.
  '(ansi-color-names-vector
    ["#000000" "#8b0000" "#00ff00" "#ffa500" "#7b68ee" "#dc8cc3" "#93e0e3" "#dcdccc"])
- '(custom-enabled-themes '(manoj-dark))
+ '(custom-enabled-themes (quote (manoj-dark)))
  '(custom-safe-themes
-   '("d1cc05d755d5a21a31bced25bed40f85d8677e69c73ca365628ce8024827c9e3" default))
+   (quote
+    ("d1cc05d755d5a21a31bced25bed40f85d8677e69c73ca365628ce8024827c9e3" default)))
  '(fci-rule-color "#383838")
  '(haskell-interactive-popup-errors nil)
+ '(lean-rootdir "/home/scottviteri/LocalSoftware/lean-3.4.2-linux")
  '(org-babel-python-command "python3")
  '(org-confirm-babel-evaluate nil)
  '(package-selected-packages
-   '(ac-haskell-process flymake-hlint iedit merlin-eldoc auto-complete merlin tuareg helm-lean company-lean lean-mode markdown-mode powerline magit use-package ivy hydra evil company-coq))
- '(send-mail-function 'smtpmail-send-it)
+   (quote
+    (ac-haskell-process flymake-hlint iedit merlin-eldoc auto-complete merlin tuareg markdown-mode powerline magit use-package ivy hydra evil)))
+ '(send-mail-function (quote smtpmail-send-it))
  '(tab-stop-list
-   '(4 8 12 16 20 24 28 32 36 40 44 48 52 56 60 64 68 72 76 80 84 88 92 96 100 104 108 112 116 120)))
+   (quote
+    (4 8 12 16 20 24 28 32 36 40 44 48 52 56 60 64 68 72 76 80 84 88 92 96 100 104 108 112 116 120))))
 
 
 (custom-set-faces
@@ -350,4 +365,3 @@
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  )
-

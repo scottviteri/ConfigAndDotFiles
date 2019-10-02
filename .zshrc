@@ -88,7 +88,7 @@ source $ZSH/oh-my-zsh.sh
 alias agi='sudo apt install'
 alias update='sudo apt update'
 alias HDMI='xrandr --output HDMI-1 --auto --right-of eDP-1'
-alias VGA='xrandr --output VGA-1 --auto --left-of eDP-1'
+alias VGA='xrandr --output VGA-1 --auto --right-of eDP-1'
 alias off='xrandr --output HDMI-1 --off && xrandr --output VGA-1 --off'
 
 bindkey -v
@@ -113,8 +113,29 @@ export NECSI="$EMPLOYMENT/NECSI"
 export PROJECTS="$DROPBOX/MyBrain/BrainSelf/Projects"
 export NIX="$HOME/LocalSoftware/ConfigAndDotFiles/NixFiles"
 export COQ="$PROG/TheoremProving/Coq"
-export PROJ="$COQ/100FamousProofs"
+export HOTT="$PROG/TheoremProving/HoTT"
+export PROOFTREES="$COQ/ManipulateProofTrees"
 export WEBSITE="$STANFORD/AllYears/www"
+export SMT="$COQ/SMT"
+
+export PATH="$HOME/LocalSoftware/coq/bin:$PATH"
+export PATH="$HOME/LocalSoftware/agda/.stack-work/install/x86_64-linux/lts-13.3/8.6.3/bin:$PATH"
+export PATH="$HOME/LocalSoftware/exercism:$PATH"
+export PATH="$HOME/LocalSoftware/lean-3.4.2-linux/bin:$PATH"
+export PATH="$HOME/.mathlib/bin:$PATH"
+export PATH="$HOME/.elan/bin:$PATH"
+export PATH="$HOME/.cabal/bin:$PATH"
+
+export PATH="$HOME/LocalSoftware/CVC4/build/bin:$PATH"
+export PATH="$HOME/LocalSoftware/CVC4/lfsc-checker/build/src:$PATH"
+
+export LFSCSIGS="$HOME/LocalSoftware/smtcoq/src/lfsc/tests/signatures"
+export SIGS="$HOME/LocalSoftware/CVC4/proofs/signatures"
+alias lfsccc="lfscc $SIGS/sat.plf $SIGS/er.plf $SIGS/smt.plf $SIGS/th_base.plf $SIGS/lrat.plf $SIGS/drat.plf $SIGS/th_arrays.plf $SIGS/th_bv.plf $SIGS/th_bv_bitblast.plf $SIGS/th_bv_rewrites.plf $SIGS/th_real.plf $SIGS/th_int.plf $SIGS/th_lra.plf"
 
 
+# opam configuration
+test -r /home/scottviteri/.opam/opam-init/init.zsh && . /home/scottviteri/.opam/opam-init/init.zsh > /dev/null 2> /dev/null || true
+
+if [ -e /home/scottviteri/.nix-profile/etc/profile.d/nix.sh ]; then . /home/scottviteri/.nix-profile/etc/profile.d/nix.sh; fi # added by Nix installer
 

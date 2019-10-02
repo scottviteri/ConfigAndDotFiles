@@ -1,0 +1,2 @@
+;;; -*- no-byte-compile: t -*-
+(define-package "helm-lean" "20171102.1454" "Helm interfaces for lean-mode" '((emacs "24.3") (dash "2.12.0") (helm "2.8.0") (lean-mode "3.3.0")) :commit "b5ba739f68ef731c03247bf6db2708502c8ac46c" :keywords '("languages") :authors '(("Leonardo de Moura" . "leonardo@microsoft.com") ("Soonho Kong      " . "soonhok@cs.cmu.edu") ("Gabriel Ebner    " . "gebner@gebner.org") ("Sebastian Ullrich" . "sebasti@nullri.ch")) :maintainer '("Sebastian Ullrich" . "sebasti@nullri.ch") :url "https://github.com/leanprover/lean-mode")
