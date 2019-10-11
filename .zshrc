@@ -90,27 +90,29 @@ alias update='sudo apt update'
 alias HDMI='xrandr --output HDMI-1 --auto --right-of eDP-1'
 alias VGA='xrandr --output VGA-1 --auto --right-of eDP-1'
 alias off='xrandr --output HDMI-1 --off && xrandr --output VGA-1 --off'
+alias mute='amixer sset Master mute'
+alias unmute='amixer sset Master unmute'
+
 
 bindkey -v
-export DROPBOX="$HOME/Dropbox"
-export MIT="$DROPBOX/MyBrain/BodySelf/FormalEducation/MIT"
-export CMU="$DROPBOX/MyBrain/BodySelf/FormalEducation/CMU"
-export STANFORD="$DROPBOX/MyBrain/BodySelf/FormalEducation/Stanford"
+export MIT="$HOME/MyBrain/BodySelf/FormalEducation/MIT"
+export CMU="$HOME/MyBrain/BodySelf/FormalEducation/CMU"
+export STANFORD="$HOME/MyBrain/BodySelf/FormalEducation/Stanford"
 export CLASSES="$MIT/Year4/Spring"
-export FINANCES="$DROPBOX/MyBrain/OutsideWorld/Finances/Finances"
-export DIARY="$DROPBOX/MyBrain/BrainSelf/Diary"
-export HEALTH="$DROPBOX/MyBrain/BodySelf/Health"
-export NUTRITION="$DROPBOX/MyBrain/BodySelf/Health/Nutrition"
-export SLEEP="$DROPBOX/MyBrain/BodySelf/Health/Sleep"
-export QUESTIONS="$DROPBOX/MyBrain/BrainSelf/Questions"
-export HABITS="$DROPBOX/MyBrain/BodySelf/Habits"
-export APPLICATIONS="$DROPBOX/MyBrain/BodySelf/Career/Applications"
-export EMPLOYMENT="$DROPBOX/MyBrain/BodySelf/Career/Employment"
-export TODO="$DROPBOX/MyBrain/BrainSelf/ToDo"
-export CS="$DROPBOX/MyBrain/BrainSelf/ModelBuilding/ComputerScience"
+export FINANCES="$HOME/MyBrain/OutsideWorld/Finances/Finances"
+export DIARY="$HOME/MyBrain/BrainSelf/Diary"
+export HEALTH="$HOME/MyBrain/BodySelf/Health"
+export NUTRITION="$HOME/MyBrain/BodySelf/Health/Nutrition"
+export SLEEP="$HOME/MyBrain/BodySelf/Health/Sleep"
+export QUESTIONS="$HOME/MyBrain/BrainSelf/Questions"
+export HABITS="$HOME/MyBrain/BodySelf/Habits"
+export APPLICATIONS="$HOME/MyBrain/BodySelf/Career/Applications"
+export EMPLOYMENT="$HOME/MyBrain/BodySelf/Career/Employment"
+export TODO="$HOME/MyBrain/BrainSelf/ToDo"
+export CS="$HOME/MyBrain/BrainSelf/ModelBuilding/ComputerScience"
 export PROG="$CS/Programming"
 export NECSI="$EMPLOYMENT/NECSI"
-export PROJECTS="$DROPBOX/MyBrain/BrainSelf/Projects"
+export PROJECTS="$HOME/MyBrain/BrainSelf/Projects"
 export NIX="$HOME/LocalSoftware/ConfigAndDotFiles/NixFiles"
 export COQ="$PROG/TheoremProving/Coq"
 export HOTT="$PROG/TheoremProving/HoTT"
@@ -138,4 +140,3 @@ alias lfsccc="lfscc $SIGS/sat.plf $SIGS/er.plf $SIGS/smt.plf $SIGS/th_base.plf $
 test -r /home/scottviteri/.opam/opam-init/init.zsh && . /home/scottviteri/.opam/opam-init/init.zsh > /dev/null 2> /dev/null || true
 
 if [ -e /home/scottviteri/.nix-profile/etc/profile.d/nix.sh ]; then . /home/scottviteri/.nix-profile/etc/profile.d/nix.sh; fi # added by Nix installer
-

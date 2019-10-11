@@ -32,8 +32,12 @@
           evil-want-integration t)
   :config
     (evil-mode 1)
+    (define-key evil-normal-state-map "\M-." nil)
+    (define-key evil-motion-state-map "T" nil)
+    (define-key evil-insert-state-map (kbd "TAB") 'tab-to-tab-stop)
   :pin melpa-unstable
 )
+
 
 (use-package proof-general
     :ensure t)
@@ -49,8 +53,7 @@
 
 (add-to-list 'load-path "~/LocalSoftware/lean-3.4.2-linux")
 (use-package lean-mode
-  :ensure t
-  :init (define-key evil-normal-state-map "\M-." nil))
+  :ensure t)
 (require 'company-lean)
 (require 'helm-lean)
 ;; Python
@@ -103,14 +106,14 @@
 
 (add-hook 'before-save-hook 'delete-trailing-whitespace)
 
-(use-package tex
-    :ensure auctex
-)
-
-(use-package latex-preview-pane
-    :ensure t
-)
-
+;(use-package tex
+;    :ensure auctex
+;)
+;
+;(use-package latex-preview-pane
+;    :ensure t
+;)
+;
 (use-package hydra
     :ensure t
 )
@@ -143,7 +146,7 @@
          'org-babel-load-languages
          '(
            (C . t)
-           (sh . t)
+           (shell . t)
            (python . t)
            (scheme . t)
            (perl . t)
@@ -222,23 +225,11 @@
 ;)
 ;
 
-;; could potentially init all of evil collection
-;;(require 'evil-collection-mu4e) ; would do (init-evil-collection) or something like that after
-
-;(use-package evil
-;  :ensure t
-;  :init
-;  (setq evil-want-integration t) ;; This is optional since it's already set to t by default.
-;  (setq evil-want-keybinding nil)
-;  :config
-;  (evil-mode 1))
-
 (add-to-list 'load-path "/home/scottviteri/.emacs.d/evil-collection/")
 ;;(with-eval-after-load 'mu4e (require 'evil-collection-mu4e) (evil-collection-mu4e-setup))
 ;(add-hook 'mu4e (prog1 (require 'evil-collection-mu4e) (evil-collection-mu4e-setup)))
 (require 'evil-collection)
 (evil-collection-init)
-
 
 (add-to-list 'load-path "/home/scottviteri/.emacs.d/agda-mode/")
 
@@ -341,18 +332,23 @@
  ;; If there is more than one, they won't work right.
  '(ansi-color-names-vector
    ["#000000" "#8b0000" "#00ff00" "#ffa500" "#7b68ee" "#dc8cc3" "#93e0e3" "#dcdccc"])
+ '(browse-url-browser-function (quote w3m))
  '(custom-enabled-themes (quote (manoj-dark)))
  '(custom-safe-themes
    (quote
     ("d1cc05d755d5a21a31bced25bed40f85d8677e69c73ca365628ce8024827c9e3" default)))
+ '(eshell-cmpl-compare-entry-function (quote string-lessp))
  '(fci-rule-color "#383838")
  '(haskell-interactive-popup-errors nil)
+ '(lean-message-boxes-enabled-captions
+   (quote
+    ("check result" "eval result" "print result" "reduce result" "trace output")))
  '(lean-rootdir "/home/scottviteri/LocalSoftware/lean-3.4.2-linux")
  '(org-babel-python-command "python3")
  '(org-confirm-babel-evaluate nil)
  '(package-selected-packages
    (quote
-    (ac-haskell-process flymake-hlint iedit merlin-eldoc auto-complete merlin tuareg markdown-mode powerline magit use-package ivy hydra evil)))
+    (pdf-tools w3m ac-haskell-process flymake-hlint iedit merlin-eldoc auto-complete merlin tuareg markdown-mode powerline magit use-package ivy hydra evil)))
  '(send-mail-function (quote smtpmail-send-it))
  '(tab-stop-list
    (quote
