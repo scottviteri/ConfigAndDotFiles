@@ -60,20 +60,23 @@
 
 (global-prettify-symbols-mode 1)
 
-(setq python-symbols-list '(lambda ()
+(use-package python
+    :mode ("\\.py\\'" . python-mode)
+    :interpreter ("python3" . python-mode)
+)
+
+(let ((python-symbols-list '(lambda ()
         (mapc (lambda (pair) (push pair prettify-symbols-alist))
             '(("def" . "𝒇")
              ("class" . "𝑪")
              ("and" . "∧")
              ("or" . "∨")
-             ("not" . "￢")
              ("in" . "∈")
              ("not in" . "∉")
              ("return" . "⟼")
              ("yield" . "⟻")
              ("for" . "∀")
              ("!=" . "≠")
-             ("==" . "＝")
              (">=" . "≥")
              ("<=" . "≤")
              ("=" . "≝")
@@ -82,18 +85,11 @@
              ("float" .    #x211d)
              ("str" .      #x1d54a)
              ("True" .     #x1d54b)
-             ("False" .    #x1d53d)))))
-
-(add-hook 'python-mode-hook python-symbols-list)
-
-(setq python-shell-completion-native-enable nil)
-(use-package python
-    :mode ("\\.py\\'" . python-mode)
-    :interpreter ("python3" . python-mode)
-)
-(use-package python-mode
+             ("False" .    #x1d53d))))))
+  (use-package python-mode
+    :config (setq python-shell-completion-native-enable nil)
     :hook python-symbols-list
-)
+  ))
 
 
 (setq backup-directory-alist '(("." . "~/.emacs.d/backup"))
@@ -166,11 +162,14 @@
 
 (use-package org-bullets
   :ensure t
-  :config                                     (setq org-highlight-latex-and-related '(latex))
-  (setq org-bullets-bullet-list '("∙"))
-  (add-hook 'org-mode-hook 'org-bullets-mode))(define-key org-mode-map (kbd "C-c C-c")
-  (lambda () (interactive) (org-ctrl-c-ctrl-c)
-                           (org-display-inline-images)))
+  :config
+    (setq org-highlight-latex-and-related '(latex))
+    (setq org-bullets-bullet-list '("∙"))
+    (add-hook 'org-mode-hook 'org-bullets-mode))
+
+;(define-key org-mode-map (kbd "C-c C-c")
+;    (lambda () (interactive) (org-ctrl-c-ctrl-c)
+;                             (org-display-inline-images)))
 
 (use-package evil-org
   :ensure t
@@ -179,9 +178,7 @@
   (add-hook 'org-mode-hook 'evil-org-mode)
   (add-hook 'evil-org-mode-hook
             (lambda ()
-              (evil-org-set-key-theme)))
-  (require 'evil-org-agenda)
-  (evil-org-agenda-set-keys))
+              (evil-org-set-key-theme))))
 
 (use-package geiser
     :ensure t
@@ -225,11 +222,16 @@
 ;)
 ;
 
-(add-to-list 'load-path "/home/scottviteri/.emacs.d/evil-collection/")
+;(add-to-list 'load-path "/home/scottviteri/.emacs.d/evil-collection/")
+(use-package evil-collection
+  :ensure t
+  :config (evil-collection-init))
+
 ;;(with-eval-after-load 'mu4e (require 'evil-collection-mu4e) (evil-collection-mu4e-setup))
 ;(add-hook 'mu4e (prog1 (require 'evil-collection-mu4e) (evil-collection-mu4e-setup)))
-(require 'evil-collection)
-(evil-collection-init)
+;(require 'evil-collection)
+
+;(evil-collection-init)
 
 (add-to-list 'load-path "/home/scottviteri/.emacs.d/agda-mode/")
 
@@ -243,6 +245,7 @@
   :config
   (add-hook 'after-init-hook 'global-flycheck-mode)
   (add-to-list 'flycheck-checkers 'proselint)
+  (setq-default flycheck-disabled-checkers '(emacs-lisp-checkdoc))
   (setq-default flycheck-highlighting-mode 'lines)
   ;; Define fringe indicator / warning levels
   (define-fringe-bitmap 'flycheck-fringe-bitmap-ball
@@ -305,12 +308,36 @@
         (add-hook 'haskell-mode-hook 'interactive-haskell-mode)
 )
 
+(use-package eshell
+    :ensure t
+    :config
+        (add-hook 'eshell-mode-hook '(lambda () (setq pcomplete-cycle-completions nil))))
+
+; '(eshell-cmpl-compare-entry-function (quote string-lessp))
+
+(use-package irony
+  :ensure t
+  :config
+    (add-hook 'c++-mode-hook 'irony-mode)
+    (add-hook 'c-mode-hook 'irony-mode)
+    (add-hook 'objc-mode-hook 'irony-mode)
+    (add-hook 'irony-mode-hook 'irony-cdb-autosetup-compile-options)
+)
+
+(use-package company
+  :ensure t
+  :defer t
+  :init (add-hook 'after-init-hook 'global-company-mode)
+  :config
+    (use-package company-irony :ensure t :defer t)
+    (global-set-key (kbd "S-SPC") #'company-complete))
+
 (defun my-insert-tab-char ()
-  "Insert 4 spaces"
+  "Insert 4 spaces."
   (interactive) (insert "    "))
 
 ; (global-set-key (kbd "TAB") 'my-insert-tab-char)
-(global-set-key (kbd "S-SPC") #'company-complete)
+
 
 ; (load "/home/scottviteri/opam-coq/coq-8.8/share/emacs/site-lisp/tuareg-site-file")
 ; (load "/home/scottviteri/opam-coq/coq-8.8.source/share/emacs/site-lisp/tuareg-site-file")
@@ -348,8 +375,9 @@
  '(org-confirm-babel-evaluate nil)
  '(package-selected-packages
    (quote
-    (pdf-tools w3m ac-haskell-process flymake-hlint iedit merlin-eldoc auto-complete merlin tuareg markdown-mode powerline magit use-package ivy hydra evil)))
+    (company-mode irony-mode esh-autosuggest esh-help pdf-tools w3m ac-haskell-process flymake-hlint iedit merlin-eldoc auto-complete merlin tuareg markdown-mode powerline magit use-package ivy hydra evil)))
  '(send-mail-function (quote smtpmail-send-it))
+ '(show-paren-mode t)
  '(tab-stop-list
    (quote
     (4 8 12 16 20 24 28 32 36 40 44 48 52 56 60 64 68 72 76 80 84 88 92 96 100 104 108 112 116 120))))
