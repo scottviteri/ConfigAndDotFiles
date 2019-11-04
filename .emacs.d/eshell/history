@@ -1,0 +1,128 @@
+ls
+find-file init.el 
+cd $PROG
+ls
+find-file ~/.emacs.d/init.el 
+ls
+cd Haskell/
+ls
+find-file BasicPrint.hs
+cd ..
+ls
+cd Scheme/
+ls
+cd ..
+ls
+cd Exercism/
+ls
+cd scheme/
+ls
+cd change/
+s
+ls
+find-file change.scm 
+find-file change.scm 
+cd $PROJ
+ls
+cd $PROG
+ls
+cd Exercism/
+ls
+cd scheme/
+ls
+cd change/
+ls
+find-file change.scm 
+ls
+rm change.scm\~
+ls
+find-file ~/.emacs.d/init.el 
+ls
+find-file change.scm 
+find-file ~/.emacs.d/init.el 
+cd ../../..
+ls
+cd Lean
+cd TheoremProving/Lean/
+ls
+find-file test.lean 
+rm test.lean 
+find-file induction.lean 
+find-file induction.lean 
+cd $PROG
+ls
+cd Exercism/
+ls
+ls
+cd sch
+ls
+cd scheme/
+ls
+cd rna-transcription/
+ls
+find-file rna-transcription.scm 
+ls
+ls
+rm rna-transcription.scm\~
+ls
+make guile
+make guile
+ls
+find-file ../guile.info
+ls
+make guile
+j
+make guile
+make guile
+make guile
+ls
+exercism submit rna-transcription.scm 
+ls
+ls
+ls
+cd ..
+ls
+exercism download --exercise=grains --track=scheme
+cd grains/
+ls
+find-file grains.scm 
+find-file test.scm 
+ls
+rm *~
+ls
+ls
+rm \#grains.scm\# 
+make guile
+exercism submit grains.scm 
+exercism download --exercise=perfect-numbers --track=scheme
+cd per
+ls
+ls
+cd ../perfect-numbers/
+ls
+find-file perfect-numbers.scm 
+find-file test.scm 
+find-file ~/.emacs.d/init.el 
+cd $PROG
+ls
+cd e
+cd Exercism/
+ls;
+cd scheme/
+ls
+cd perfect-numbers/
+ls
+find-file perfect-numbers.scm 
+find-file test.scm 
+find-file ../guile.info 
+find-file ~/.emacs.d/init.el 
+cd $PROG
+cd Exercism/scheme/perfect-numbers/
+ls
+find-file perfect-numbers.scm 
+ls
+find-file test.scm 
+cd ..
+find-file guile.info 
+find-file guile.info 
+ps aux | grep tabnine
