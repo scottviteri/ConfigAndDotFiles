@@ -93,12 +93,12 @@ alias off='xrandr --output HDMI-1 --off && xrandr --output VGA-1 --off'
 alias mute='amixer sset Master mute'
 alias unmute='amixer sset Master unmute'
 
-
 bindkey -v
 export MIT="$HOME/MyBrain/BodySelf/FormalEducation/MIT"
 export CMU="$HOME/MyBrain/BodySelf/FormalEducation/CMU"
 export STANFORD="$HOME/MyBrain/BodySelf/FormalEducation/Stanford"
 export CLASSES="$MIT/Year4/Spring"
+export PROJ="$HOME/LocalSoftware/cvc4-lean"
 export FINANCES="$HOME/MyBrain/OutsideWorld/Finances/Finances"
 export DIARY="$HOME/MyBrain/BrainSelf/Diary"
 export HEALTH="$HOME/MyBrain/BodySelf/Health"
@@ -130,7 +130,7 @@ export PATH="$HOME/.cabal/bin:$PATH"
 
 export PATH="$HOME/LocalSoftware/CVC4/build/bin:$PATH"
 export PATH="$HOME/LocalSoftware/CVC4/lfsc-checker/build/src:$PATH"
-
+export PATH="$HOME/LocalSoftware/LFSC/build/src:$PATH"
 export LFSCSIGS="$HOME/LocalSoftware/smtcoq/src/lfsc/tests/signatures"
 export SIGS="$HOME/LocalSoftware/CVC4/proofs/signatures"
 alias lfsccc="lfscc $SIGS/sat.plf $SIGS/er.plf $SIGS/smt.plf $SIGS/th_base.plf $SIGS/lrat.plf $SIGS/drat.plf $SIGS/th_arrays.plf $SIGS/th_bv.plf $SIGS/th_bv_bitblast.plf $SIGS/th_bv_rewrites.plf $SIGS/th_real.plf $SIGS/th_int.plf $SIGS/th_lra.plf"
