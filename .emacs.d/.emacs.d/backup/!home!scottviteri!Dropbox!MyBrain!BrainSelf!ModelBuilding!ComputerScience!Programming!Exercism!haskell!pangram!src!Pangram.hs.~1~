@@ -1,6 +1,0 @@
-module Pangram (isPangram) where
-import Data.Char
-
-isPangram :: String -> Bool
-
-

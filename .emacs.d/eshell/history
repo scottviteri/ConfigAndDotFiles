@@ -1,128 +1,128 @@
 ls
-find-file init.el 
-cd $PROG
+cd lfsc_translator/
 ls
-find-file ~/.emacs.d/init.el 
-ls
-cd Haskell/
-ls
-find-file BasicPrint.hs
+find-file translation.lean 
 cd ..
 ls
-cd Scheme/
+cd sigs
+ls
+find-file smt.lean 
+cd ../../..
+cd cvc4-lean/
+ls
+cd src/
+ls
+cd lean_signatures/
+ls
+find-file drat.lean 
 ls
 cd ..
 ls
-cd Exercism/
+cd lfsc_proofs/
 ls
-cd scheme/
+find-file lrat_test.plf 
+cd MyBrain/
 ls
-cd change/
+cd BrainSelf/
+ls
+Brainself
+cd BrainSelf
+ls
+cd MoviesAndAnime/
+ls
+ls
+cp to_watch.txt to_watch.org
+ff to_watch.org
+ls
+rm to_watch.txt
+ls
+cd ..
+ls
+cd ToDo/
+ls
+find-file \#4-3-19.txt\# 
+ls
+rm \#4-3-19.txt\# 4-3-19.txt
+ls 4-3-19.org 
+ls
+mv \#4-3-19.txt\# 4-3-19.txt
+mv \#5-16-19.org\# 5-16-19.org
+ls
+ls
+touch 1-4-20.org
+ff 1-4-20.org 
+cd ../..
+ls
+cd Brainself
+ls
+cd BrainSelf
+cd ~/Downloads/
+ls
+ff Backus-CanProgrammingBeLiberated.pdf 
+ls
+cd ../.emacs.d/
+ls
+ls .emacs.d/
+ls
+ff .emacs.d/init.el 
+ff init.el 
+rm -rf .emacs.d/
+ls
+cp init.el  backup.init.el 
+source init.el 
+ls
+cd LocalSoftware/
 s
 ls
-find-file change.scm 
-find-file change.scm 
-cd $PROJ
+cd ExploringTheSpaceOfShortPrograms/
+cd ../ManipulateProofTrees/
 ls
-cd $PROG
+ls 
 ls
-cd Exercism/
+cd LocalSoftware/
 ls
-cd scheme/
+cd ../MyBrain/
+s
 ls
-cd change/
+cd BrainSelf/
 ls
-find-file change.scm 
-ls
-rm change.scm\~
-ls
-find-file ~/.emacs.d/init.el 
-ls
-find-file change.scm 
-find-file ~/.emacs.d/init.el 
-cd ../../..
-ls
-cd Lean
-cd TheoremProving/Lean/
-ls
-find-file test.lean 
-rm test.lean 
-find-file induction.lean 
-find-file induction.lean 
-cd $PROG
-ls
-cd Exercism/
-ls
-ls
-cd sch
-ls
-cd scheme/
-ls
-cd rna-transcription/
-ls
-find-file rna-transcription.scm 
-ls
-ls
-rm rna-transcription.scm\~
-ls
-make guile
-make guile
-ls
-find-file ../guile.info
-ls
-make guile
-j
-make guile
-make guile
-make guile
-ls
-exercism submit rna-transcription.scm 
-ls
-ls
+cd ToDo/
 ls
 cd ..
 ls
-exercism download --exercise=grains --track=scheme
-cd grains/
+cd ToDo/
 ls
-find-file grains.scm 
-find-file test.scm 
+ff 1-4-20.org 
+cd ../..
 ls
-rm *~
+cd ../LocalSoftware/
 ls
+cd ManipulateProofTrees/
 ls
-rm \#grains.scm\# 
-make guile
-exercism submit grains.scm 
-exercism download --exercise=perfect-numbers --track=scheme
-cd per
+ff GenerateDependencyGraphs.org 
+ff GenerateDependencyGraphs.org 
+which python
+python
+which python3
+python3
+python3
+ff ~/.emacs.d/init.el 
+ff ManipPfTrees.org 
 ls
+mkdir Images
+ff .gitignore 
+cd Images/
 ls
-cd ../perfect-numbers/
-ls
-find-file perfect-numbers.scm 
-find-file test.scm 
-find-file ~/.emacs.d/init.el 
-cd $PROG
-ls
-cd e
-cd Exercism/
-ls;
-cd scheme/
-ls
-cd perfect-numbers/
-ls
-find-file perfect-numbers.scm 
-find-file test.scm 
-find-file ../guile.info 
-find-file ~/.emacs.d/init.el 
-cd $PROG
-cd Exercism/scheme/perfect-numbers/
-ls
-find-file perfect-numbers.scm 
-ls
-find-file test.scm 
+ff .gitignore
 cd ..
-find-file guile.info 
-find-file guile.info 
-ps aux | grep tabnine
+git status
+git add .gitignore 
+git status
+git add Images/
+git status
+git commit -m "Added empty Images directory"
+git puhs
+git push
+ls
+ff Images/ev_4_DAG.png 
+ls Images/

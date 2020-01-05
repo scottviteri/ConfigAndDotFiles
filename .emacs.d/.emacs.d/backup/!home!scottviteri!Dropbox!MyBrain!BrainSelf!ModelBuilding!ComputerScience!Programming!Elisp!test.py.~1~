@@ -1,3 +1,0 @@
-def (x): return x**2
-
-def g(): return [f(x) for x in range(3)]

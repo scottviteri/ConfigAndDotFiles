@@ -1,2 +1,0 @@
-(Definition Top.ev_4 (App (Construct (Name ev) 2) (App (Construct (Name nat) 2) (App (Construct (Name nat) 2) (Construct (Name nat) 1))) (App (Construct (Name ev) 2) (Construct (Name nat) 1) (Construct (Name ev) 1))))
-

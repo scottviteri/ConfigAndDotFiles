@@ -1,5 +1,0 @@
-Add LoadPath "~/LocalSoftware/CoqASTBinary/plugin/src/".
-Require Import PrintAST.ASTPlugin.
-Require Import presentation.
-
-PrintAST ev_4.

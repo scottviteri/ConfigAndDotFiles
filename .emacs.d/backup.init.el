@@ -1,11 +1,8 @@
-;;import elpa
-
+;import elpa
 (require 'package)
-;add melpa as a resource
 (add-to-list 'package-archives
     '("melpa-unstable" . "https://melpa.org/packages/")
-    '("melpa-stable" . "https://stable.melpa.org/packages/")
-)
+    '("melpa-stable" . "https://stable.melpa.org/packages/"))
 
 (package-initialize)
 
@@ -39,23 +36,16 @@
 )
 
 
-(use-package proof-general
-    :ensure t)
-
-; (load "~/.emacs.d/PG/generic/proof-site")
-(use-package company-coq
-    :ensure t
-    :config
-        (setq proof-splash-seen t)
-        (add-hook 'coq-mode-hook 'company-coq-mode)
-    :pin melpa-unstable
-)
+(use-package helm
+  :bind (("M-x" . helm-M-x)
+         ("C-x b" . helm-mini)))
 
 (add-to-list 'load-path "~/LocalSoftware/lean-3.4.2-linux")
 (use-package lean-mode
   :ensure t)
-(require 'company-lean)
-(require 'helm-lean)
+(use-package helm-lean
+  :ensure t)
+
 ;; Python
 
 (global-prettify-symbols-mode 1)
@@ -92,31 +82,7 @@
   ))
 
 
-(setq backup-directory-alist '(("." . "~/.emacs.d/backup"))
-    backup-by-copying t    ; Don't delink hardlinks
-    version-control t      ; Use version numbers on backups
-    delete-old-versions t  ; Automatically delete excess backups
-    kept-new-versions 20   ; how many of the newest versions to keep
-    kept-old-versions 5    ; and how many of the old
-)
-
 (add-hook 'before-save-hook 'delete-trailing-whitespace)
-
-;(use-package tex
-;    :ensure auctex
-;)
-;
-;(use-package latex-preview-pane
-;    :ensure t
-;)
-;
-
-;(use-package ivy
-;      :ensure t
-;      :init (setq ivy-initial-inputs-alist nil)
-;      :diminish ivy-mode
-;      :config (ivy-mode t)
-;)
 
 (use-package powerline
     :ensure t
@@ -179,8 +145,8 @@
 
 (use-package geiser
     :ensure t
+    :mode ("\\.scm\\'" . scheme-mode)
     :config
-        (add-to-list 'auto-mode-alist '("\\.scm\\'" . scheme-mode))
         (add-hook 'scheme-mode-hook 'turn-on-geiser-mode)
         (add-hook 'scheme-mode-hook 'enable-paredit-mode))
 
@@ -214,13 +180,10 @@
 ;              (expand-file-name "~/.authinfo.gpg")
 ;              smtpmail-default-smtp-server "smtp.gmail.com"
 ;              smtpmail-smtp-server "smtp.gmail.com"
-;              smtpmail-smtp-service 587
-;              smtpmail-debug-info t)
-;)
+;              smtpmail-smtp-service 587 ;              smtpmail-debug-info t) ;)
 ;
 
 ;(add-to-list 'load-path "/home/scottviteri/.emacs.d/evil-collection/")
-
 (use-package evil-collection
   :ensure t
   :config (evil-collection-init))
@@ -306,8 +269,9 @@
 (use-package eshell
     :ensure t
     :config
-        (add-hook 'eshell-mode-hook '(lambda () (setq pcomplete-cycle-completions nil))))
-
+        (add-hook 'eshell-mode-hook '(lambda () (setq pcomplete-cycle-completions nil)))
+        (setq company-tabnine--disabled 1)
+        (company-mode))
 ; '(eshell-cmpl-compare-entry-function (quote string-lessp))
 
 (use-package irony
@@ -328,13 +292,24 @@
   :init (add-hook 'after-init-hook 'global-company-mode)
   :config
     (use-package company-irony :ensure t :defer t)
+    (use-package company-tabnine :ensure t)
+    (use-package company-lean :ensure t)
+    (add-to-list 'company-backends #'company-tabnine)
+    (setq company-idle-delay 0)
+    (setq company-show-numbers t)
     (global-set-key (kbd "S-SPC") #'company-complete))
 
-(defun my-insert-tab-char ()
-  "Insert 4 spaces."
-  (interactive) (insert "    "))
 
-; (global-set-key (kbd "TAB") 'my-insert-tab-char)
+(use-package proof-general
+    :ensure t)
+
+(use-package company-coq
+    :ensure t
+    :config
+        (setq proof-splash-seen t)
+        (add-hook 'coq-mode-hook 'company-coq-mode)
+    :pin melpa-unstable)
+
 
 ; (load "/home/scottviteri/opam-coq/coq-8.8/share/emacs/site-lisp/tuareg-site-file")
 ; (load "/home/scottviteri/opam-coq/coq-8.8.source/share/emacs/site-lisp/tuareg-site-file")
@@ -369,11 +344,12 @@
    (quote
     ("check result" "eval result" "print result" "reduce result" "trace output")))
  '(lean-rootdir "/home/scottviteri/LocalSoftware/lean-3.4.2-linux")
+ '(make-backup-files nil)
  '(org-babel-python-command "python3")
  '(org-confirm-babel-evaluate nil)
  '(package-selected-packages
    (quote
-    (evil-goggles extempore-mode gnuplot-mode geiser writegood-mode company company-coq company-irony company-irony-c-headers company-lean company-math evil-collection evil-org gnuplot haskell-mode helm helm-core helm-lean helm-w3m irony irony-eldoc lean-mode math-symbol-lists org-bullets org-mime paredit proof-general eshell-did-you-mean eshell-fixed-prompt flylisp evil-paredit flymake flycheck flycheck-irony company-mode irony-mode esh-autosuggest esh-help pdf-tools w3m ac-haskell-process flymake-hlint iedit merlin-eldoc auto-complete merlin tuareg markdown-mode powerline magit use-package evil)))
+    (z3-mode helm-lean evil-goggles extempore-mode gnuplot-mode geiser writegood-mode company company-coq company-irony company-irony-c-headers company-lean company-math evil-collection evil-org gnuplot haskell-mode helm-w3m irony irony-eldoc lean-mode math-symbol-lists org-bullets org-mime paredit proof-general eshell-did-you-mean eshell-fixed-prompt flylisp evil-paredit flymake flycheck flycheck-irony company-mode irony-mode esh-autosuggest esh-help pdf-tools w3m ac-haskell-process flymake-hlint iedit merlin-eldoc auto-complete merlin tuareg markdown-mode powerline magit use-package evil)))
  '(send-mail-function (quote smtpmail-send-it))
  '(show-paren-mode t)
  '(tab-stop-list

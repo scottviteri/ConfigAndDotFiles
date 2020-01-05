@@ -1,7 +1,0 @@
-Add LoadPath "~/LocalSoftware/CoqASTSource/plugin/src/".
-Require Import PrintAST.ASTPlugin.
-Require Import inclusionexclusion.
-
-(* Print sqrt2_not_rational. *)
-PrintAST inclusion_exclusion.
-PrintAST inclusion_exclusion with depth 3.

@@ -1,7 +1,0 @@
-Add LoadPath "~/LocalSoftware/CoqASTBinary/plugin/src/".
-Require Import PrintAST.ASTPlugin.
-Require Import bertrand.
-
-(* Print sqrt2_not_rational. *)
-PrintAST bertrand_ballot.
-

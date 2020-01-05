@@ -1,5 +1,0 @@
-{-# LANGUAGE GADTs #-}
-
-data Maybe a where
-  Just :: a -> Maybe a
-  Nothing :: Maybe a

@@ -1,5 +1,0 @@
-#+NAME: factorial
-#+BEGIN_SRC haskell :results silent :exports code :var n=0
-fac 0 = 1
-fac n = n * fac (n - 1)
-#+END_SRC

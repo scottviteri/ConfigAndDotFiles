@@ -1,5 +1,0 @@
-(define (generate-num-list length min max)
-  "Generates a list of random integers between min and max"
-  (map (lambda (a) (+ (random (- max min)) min)) (make-list length)))
-
-(define (foo x) (+ 2 x))

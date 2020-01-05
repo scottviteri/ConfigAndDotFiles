@@ -1,7 +1,0 @@
-open tactic
-
-#check id
-
-example (a b : Prop) : a → b → a ∧ b :=
-by do trace "Hi, Mom!",
-      admit
