@@ -21,6 +21,17 @@
 (setq-default indent-tabs-mode nil)
 (setq-default tab-width 4)
 
+;;; esc quits
+(defun minibuffer-keyboard-quit ()
+  "Abort recursive edit.
+In Delete Selection mode, if the mark is active, just deactivate it;
+then it takes a second \\[keyboard-quit] to abort the minibuffer."
+  (interactive)
+  (if (and delete-selection-mode transient-mark-mode mark-active)
+      (setq deactivate-mark  t)
+    (when (get-buffer "*Completions*") (delete-windows-on "*Completions*"))
+    (abort-recursive-edit)))
+
 (use-package evil
   :ensure t
   :init
@@ -32,15 +43,25 @@
     (define-key evil-normal-state-map "\M-." nil)
     (define-key evil-motion-state-map "T" nil)
     (define-key evil-insert-state-map (kbd "TAB") 'tab-to-tab-stop)
-  :pin melpa-unstable
-)
+    (define-key evil-window-map "h" 'evil-window-left)
+    (define-key evil-window-map "j" 'evil-window-down)
+    (define-key evil-window-map "k" 'evil-window-up)
+    (define-key evil-window-map "l" 'evil-window-right)
+
+    (define-key evil-normal-state-map [escape] 'keyboard-quit)
+    (define-key evil-visual-state-map [escape] 'keyboard-quit)
+    (define-key minibuffer-local-map [escape] 'minibuffer-keyboard-quit)
+    (define-key minibuffer-local-ns-map [escape] 'minibuffer-keyboard-quit)
+    (define-key minibuffer-local-completion-map [escape] 'minibuffer-keyboard-quit)
+    (define-key minibuffer-local-must-match-map [escape] 'minibuffer-keyboard-quit)
+    (define-key minibuffer-local-isearch-map [escape] 'minibuffer-keyboard-quit))
 
 
 (use-package helm
   :bind (("M-x" . helm-M-x)
          ("C-x b" . helm-mini)))
 
-(add-to-list 'load-path "~/LocalSoftware/lean-3.4.2-linux")
+(add-to-list 'load-path "~/LocalSoftware/lean")
 (use-package lean-mode
   :ensure t)
 (use-package helm-lean
@@ -78,8 +99,7 @@
              ("False" .    #x1d53d))))))
   (use-package python-mode
     :config (setq python-shell-completion-native-enable nil)
-    :hook python-symbols-list
-  ))
+    :hook python-symbols-list))
 
 
 (add-hook 'before-save-hook 'delete-trailing-whitespace)
@@ -95,8 +115,12 @@
     :commands (markdown-mode gfm-mode)
     :mode (("README\\.md\\'" . gfm-mode)
            ("\\.md\\'" . markdown-mode)
-           ("\\.markdown\\'" . markdown-mode))
-)
+           ("\\.markdown\\'" . markdown-mode)))
+
+
+(use-package nov
+  :ensure t
+  :mode (("\\.epub\\'" . nov-mode)))
 
 (use-package org
     :ensure t
@@ -119,9 +143,8 @@
            (gnuplot . t)
            (lilypond . t)
            (latex . t)
-          )
-        )
-)
+           (ditaa . t)
+           (dot . t))))
 
 (use-package org-bullets
   :ensure t
@@ -149,6 +172,7 @@
     :config
         (add-hook 'scheme-mode-hook 'turn-on-geiser-mode)
         (add-hook 'scheme-mode-hook 'enable-paredit-mode))
+; want to auto turn off flycheck
 
 ;;; (add-to-list 'load-path "~/.emacs.d/mu/mu4e")
 ;(add-to-list 'load-path "/usr/local/share/emacs/site-lisp/mu4e")
@@ -184,19 +208,19 @@
 ;
 
 ;(add-to-list 'load-path "/home/scottviteri/.emacs.d/evil-collection/")
-(use-package evil-collection
-  :ensure t
-  :config (evil-collection-init))
+;(use-package evil-collection
+;  :ensure t
+;  :config (evil-collection-init))
+;(global-evil-colemak-basics-mode)
 
 ;;(with-eval-after-load 'mu4e (require 'evil-collection-mu4e) (evil-collection-mu4e-setup))
-;(add-hook 'mu4e (prog1 (require 'evil-collection-mu4e) (evil-collection-mu4e-setup)))
+;(ad-hook 'mu4e (prog1 (require 'evil-collection-mu4e) (evil-collection-mu4e-setup)))
 
 (add-to-list 'load-path "/home/scottviteri/.emacs.d/agda-mode/")
 
 (use-package org-mime
     :ensure t
-    :config (setq org-mime-library 'mml)
-)
+    :config (setq org-mime-library 'mml))
 
 (use-package flycheck
   :ensure t
@@ -270,9 +294,11 @@
     :ensure t
     :config
         (setq python-shell-completion-native-enable nil)
-        (add-hook 'eshell-mode-hook '(lambda () (setq pcomplete-cycle-completions nil)))
-        (setq company-tabnine--disabled 1)
-        (company-mode -1))
+        ;(add-hook 'eshell-mode-hook '(lambda () (local-set-key (kbd "S-SPC") #'pcomplete-expand-and-complete)))
+        ;(add-hook 'eshell-mode-hook '(lambda () (setq pcomplete-cycle-completions nil)))
+        ;(setq company-tabnine--disabled 1)
+        ;(company-mode -1)
+        )
 ; '(eshell-cmpl-compare-entry-function (quote string-lessp))
 
 (use-package irony
@@ -284,23 +310,19 @@
     (add-hook 'c-mode-hook 'irony-eldoc)
     (add-hook 'objc-mode-hook 'irony-mode)
     (add-hook 'objc-mode-hook 'irony-eldoc)
-    (add-hook 'irony-mode-hook 'irony-cdb-autosetup-compile-options)
-)
+    (add-hook 'irony-mode-hook 'irony-cdb-autosetup-compile-options))
 
 (use-package company
   :ensure t
   :defer t
-  :init (add-hook 'after-init-hook 'global-company-mode)
+  ;:init (add-hook 'after-init-hook 'global-company-mode)
   :config
     (use-package company-irony :ensure t :defer t)
     (use-package company-tabnine :ensure t)
     (use-package company-lean :ensure t)
     (add-to-list 'company-backends #'company-tabnine)
-    (setq company-idle-delay 0)
-    (setq company-show-numbers t)
-    (setq company-global-modes '(not eshell-mode))
-    (global-set-key (kbd "S-SPC") #'company-complete))
-
+    ;(global-set-key (kbd "S-SPC") #'company-complete)
+    )
 
 (use-package proof-general
     :ensure t)
@@ -316,15 +338,26 @@
 ; (load "/home/scottviteri/opam-coq/coq-8.8/share/emacs/site-lisp/tuareg-site-file")
 ; (load "/home/scottviteri/opam-coq/coq-8.8.source/share/emacs/site-lisp/tuareg-site-file")
 
+(add-hook 'pdf-tools-enabled-hook 'pdf-view-midnight-minor-mode)
+
 (let ((opam-share (ignore-errors (car (process-lines "opam" "config" "var" "share")))))
  (when (and opam-share (file-directory-p opam-share))
   (add-to-list 'load-path (expand-file-name "emacs/site-lisp" opam-share))
   (autoload 'merlin-mode "merlin" nil t nil)
   (add-hook 'tuareg-mode-hook 'merlin-mode t)
-  (add-hook 'caml-mode-hook 'merlin-mode t)))
+  (add-hook 'caml-mode-hook 'merlin-mode t)
+  (setq merlin-command 'opam)))
 
 (load-file (let ((coding-system-for-read 'utf-8))
                 (shell-command-to-string "agda-mode locate")))
+
+(defun my-minibuffer-setup ()
+       (set (make-local-variable 'face-remapping-alist)
+          '((default :height 2.0))))
+(add-hook 'minibuffer-setup-hook 'my-minibuffer-setup)
+(with-current-buffer (get-buffer " *Echo Area 0*")     ; the leading space character is correct
+  (setq-local face-remapping-alist '((default (:height 2.0) variable-pitch))))
+
 
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
@@ -333,30 +366,38 @@
  ;; If there is more than one, they won't work right.
  '(ansi-color-names-vector
    ["#000000" "#8b0000" "#00ff00" "#ffa500" "#7b68ee" "#dc8cc3" "#93e0e3" "#dcdccc"])
- '(browse-url-browser-function (quote w3m))
- '(custom-enabled-themes (quote (manoj-dark)))
+ '(browse-url-browser-function 'eww-browse-url)
+ '(company-backends
+   '(company-tabnine company-clang company-xcode company-capf company-files
+                     (company-dabbrev-code company-gtags company-etags company-keywords)
+                     company-dabbrev))
+ '(company-idle-delay 0)
+ '(company-lean-type-foreground "Purple")
+ '(company-show-numbers t)
+ '(custom-enabled-themes '(manoj-dark))
  '(custom-safe-themes
-   (quote
-    ("d1cc05d755d5a21a31bced25bed40f85d8677e69c73ca365628ce8024827c9e3" default)))
- '(eshell-cmpl-compare-entry-function (quote string-lessp))
+   '("d1cc05d755d5a21a31bced25bed40f85d8677e69c73ca365628ce8024827c9e3" default))
+ '(eshell-cmpl-compare-entry-function 'string-lessp)
  '(fci-rule-color "#383838")
  '(geiser-default-implementation nil)
  '(haskell-interactive-popup-errors nil)
  '(lean-message-boxes-enabled-captions
-   (quote
-    ("check result" "eval result" "print result" "reduce result" "trace output")))
- '(lean-rootdir "/home/scottviteri/LocalSoftware/lean-3.4.2-linux")
+   '("check result" "eval result" "print result" "reduce result" "trace output"))
+ '(lean-rootdir "/home/scottviteri/LocalSoftware/lean")
  '(make-backup-files nil)
  '(org-babel-python-command "python3")
  '(org-confirm-babel-evaluate nil)
+ '(org-export-use-babel nil)
+ '(org-format-latex-options
+   '(:foreground default :background default :scale 2.0 :html-foreground "Black" :html-background "Transparent" :html-scale 1.0 :matchers
+                 ("begin" "$1" "$" "$$" "\\(" "\\[")))
  '(package-selected-packages
-   (quote
-    (z3-mode helm-lean evil-goggles extempore-mode gnuplot-mode geiser writegood-mode company company-coq company-irony company-irony-c-headers company-lean company-math evil-collection evil-org gnuplot haskell-mode helm-w3m irony irony-eldoc lean-mode math-symbol-lists org-bullets org-mime paredit proof-general eshell-did-you-mean eshell-fixed-prompt flylisp evil-paredit flymake flycheck flycheck-irony company-mode irony-mode esh-autosuggest esh-help pdf-tools w3m ac-haskell-process flymake-hlint iedit merlin-eldoc auto-complete merlin tuareg markdown-mode powerline magit use-package evil)))
- '(send-mail-function (quote smtpmail-send-it))
+   '(company-tabnine company-shell direx helm-eww geiser racket-mode nov pdf-tools company-auctex z3-mode helm-lean evil-goggles extempore-mode gnuplot-mode writegood-mode company company-coq company-irony company-irony-c-headers company-lean company-math evil-collection evil-org gnuplot haskell-mode irony irony-eldoc lean-mode math-symbol-lists org-bullets org-mime paredit proof-general eshell-did-you-mean eshell-fixed-prompt flylisp evil-paredit flymake flycheck flycheck-irony company-mode irony-mode esh-autosuggest esh-help w3m ac-haskell-process flymake-hlint iedit merlin-eldoc auto-complete merlin tuareg markdown-mode powerline magit use-package evil))
+ '(pdf-view-midnight-colors '("white" . "black"))
+ '(send-mail-function 'smtpmail-send-it)
  '(show-paren-mode t)
  '(tab-stop-list
-   (quote
-    (4 8 12 16 20 24 28 32 36 40 44 48 52 56 60 64 68 72 76 80 84 88 92 96 100 104 108 112 116 120))))
+   '(4 8 12 16 20 24 28 32 36 40 44 48 52 56 60 64 68 72 76 80 84 88 92 96 100 104 108 112 116 120)))
 
 
 (custom-set-faces
