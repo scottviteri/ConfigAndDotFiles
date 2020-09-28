@@ -7,9 +7,7 @@
 
 
 (define my-keyboard-layout (keyboard-layout "us" "colemak"))
-(define i3-services
-  (simple-service 'i3-packages profile-service-type (map specification->package (list "dmenu" "i3-wm" "i3lock" "i3status"))))
- 
+
 (operating-system
   (host-name "scottviteri-thinkpad-guixsd")
   (timezone "America/Los_Angeles")
@@ -40,20 +38,16 @@
 		(home-directory "/home/scottviteri")
 	        (shell #~(string-append #$fish "/bin/fish")))
 	 %base-user-accounts))
-  ;(sudoers-file (plain-file "sudoers" (string-append (plain-file-content %sudoers-specification)
-  ;						     "%wheel ALL=(ALL) ALL")))
 
   ;; Globally-installed packages.
   (packages (append (map specification->package 
-			 (list "sudo" "xinit" "xorg-server" 
-			       "xterm" "dmenu" "i3lock" "i3-wm" 
-			       "i3status" "sway" "wofi" "waybar"
+			 (list "sudo""dmenu" "sway" "wofi" 
 			       "gnome-terminal" "wpa-supplicant" 
 			       "screen" "emacs" "vim" "git" 
-			       "nss-certs" "xf86-input-libinput" 
-			       "xf86-video-fbdev" "xf86-video-nouveau"
-			       "icecat")) 
+			       "nss-certs" "icecat" "magic-wormhole"
+			       "font-gnu-freefont" "font-gnu-freefont-ttf")) 
 		    %base-packages))
+
  
   ;; Add services to the baseline: a DHCP client and
   ;; an SSH server.
@@ -62,7 +56,6 @@
 	      (dbus-service)
 	      (service elogind-service-type)
 	      (service dhcp-client-service-type)
-	      ;(set-xorg-configuration (xorg-configuration (keyboard-layout my-keyboard-layout))) 
 	      (service openssh-service-type (openssh-configuration (port-number 2222)))
 	      (service wpa-supplicant-service-type 
 		       (wpa-supplicant-configuration 
