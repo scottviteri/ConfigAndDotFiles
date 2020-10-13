@@ -251,7 +251,6 @@ then it takes a second \\[keyboard-quit] to abort the minibuffer."
 ;;(with-eval-after-load 'mu4e (require 'evil-collection-mu4e) (evil-collection-mu4e-setup))
 ;(ad-hook 'mu4e (prog1 (require 'evil-collection-mu4e) (evil-collection-mu4e-setup)))
 
-(add-to-list 'load-path "/home/scottviteri/.emacs.d/agda-mode/")
 
 (use-package flycheck
   :ensure t
