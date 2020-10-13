@@ -2,7 +2,6 @@
 (use-package-modules shells)
 (use-service-modules networking ssh desktop dbus)
 
-
 (define my-keyboard-layout (keyboard-layout "us" "colemak"))
 
 (operating-system
